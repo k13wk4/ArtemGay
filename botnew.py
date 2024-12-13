@@ -629,44 +629,51 @@ class Boinkers:
                     time.sleep(1)
 
                     upgrade_type = ['megaUpgradeBoinkers', 'upgradeBoinker']
-                    upgrade_successful = False
-                    while not upgrade_successful:
+                    while True:
                         for upgrade in upgrade_type:
-                            try:
-                                upgrade_boinker = self.upgrade_boinker(token, upgrade_type=upgrade)
+                            upgrade_boinker = self.upgrade_boinker(token, upgrade_type=upgrade)
+                            time.sleep(5)
 
-                                if upgrade_boinker:
-                                    id_boinker = upgrade_boinker['userBoinkers']['currentBoinkerProgression']['id']
-                                    level = upgrade_boinker['userBoinkers']['currentBoinkerProgression']['level']
-                                    if upgrade_boinker.get('prizes') is not None:
-                                        self.log(
-                                            f"{Fore.MAGENTA + Style.BRIGHT}[ Boinker{Style.RESET_ALL}"
-                                            f"{Fore.GREEN + Style.BRIGHT} {'Mega ' if upgrade == 'megaUpgradeBoinkers' else ''}Upgrade Successful {Style.RESET_ALL}"
-                                            f"{Fore.MAGENTA + Style.BRIGHT}] [{Style.RESET_ALL}"
-                                            f"{Fore.WHITE + Style.BRIGHT} {id_boinker} {Style.RESET_ALL}"
-                                            f"{Fore.WHITE + Style.BRIGHT} - Level {level} {Style.RESET_ALL}"
-                                            f"{Fore.MAGENTA + Style.BRIGHT}]{Style.RESET_ALL}"
-                                        )
-                                        upgrade_successful = True
-                                        break  # Прерывание внутреннего цикла 'for' при успешном улучшении
+                            if upgrade_boinker:
+                                boink_id = upgrade_boinker['userBoinkers']['currentBoinkerProgression']['id']
+                                level = upgrade_boinker['userBoinkers']['currentBoinkerProgression']['level']
 
-                                    else:
-                                        self.log(
-                                            f"{Fore.MAGENTA + Style.BRIGHT}[ Boinker{Style.RESET_ALL}"
-                                            f"{Fore.RED + Style.BRIGHT} Upgrade Failed {Style.RESET_ALL}"
-                                            f"{Fore.MAGENTA + Style.BRIGHT}] [ No Prizes Awarded ]{Style.RESET_ALL}"
-                                        )
-                            except Exception as e:
                                 self.log(
-                                    f"{Fore.RED + Style.BRIGHT}[ ERROR ] Exception during upgrade: {e}{Style.RESET_ALL}"
+                                    f"{Fore.MAGENTA + Style.BRIGHT}[ Boinker{Style.RESET_ALL}"
+                                     f"{Fore.GREEN + Style.BRIGHT} {'Mega ' if upgrade == 'megaUpgradeBoinkers' else ''}Upgrade Successful {Style.RESET_ALL}"
+                                    f"{Fore.MAGENTA + Style.BRIGHT}] [{Style.RESET_ALL}"
+                                    f"{Fore.WHITE + Style.BRIGHT} {boink_id} {Style.RESET_ALL}"
+                                    f"{Fore.WHITE + Style.BRIGHT} - Level {level} {Style.RESET_ALL}"
+                                    f"{Fore.MAGENTA + Style.BRIGHT}]{Style.RESET_ALL}"
                                 )
-                                # Продолжаем цикл, чтобы попробовать другой тип улучшения или выйти, если больше нет вариантов
 
-                        if not upgrade_successful:
-                            # Если ни один из типов улучшений не сработал, выходим из цикла while
-                            break
+                            else:
+                                if upgrade == 'megaUpgradeBoinkers':
+                                    self.log(
+                                        f"{Fore.MAGENTA + Style.BRIGHT}[ Boinker{Style.RESET_ALL}"
+                                        f"{Fore.RED + Style.BRIGHT} Mega Upgrade Failed {Style.RESET_ALL}"
+                                        f"{Fore.MAGENTA + Style.BRIGHT}] [ Reason{Style.RESET_ALL}"
+                                        f"{Fore.WHITE + Style.BRIGHT} Balance Not Enough {Style.RESET_ALL}"
+                                        f"{Fore.MAGENTA + Style.BRIGHT}]{Style.RESET_ALL}"
+                                    )
+                                else:
+                                    self.log(
+                                        f"{Fore.MAGENTA + Style.BRIGHT}[ Boinker{Style.RESET_ALL}"
+                                        f"{Fore.RED + Style.BRIGHT} Isn't Upgraded {Style.RESET_ALL}"
+                                        f"{Fore.MAGENTA + Style.BRIGHT}] [ Reason{Style.RESET_ALL}"
+                                        f"{Fore.WHITE + Style.BRIGHT} Balance Not Enough {Style.RESET_ALL}"
+                                        f"{Fore.MAGENTA + Style.BRIGHT}]{Style.RESET_ALL}"
+                                    )
 
-                        time.sleep(5)  # Задержка после всех попыток улучшения
+                                break
+
+                            time.sleep(1)
+
+                        else:
+                            continue
+
+                        break
+
                 else:
                     self.log(
                         f"{Fore.MAGENTA + Style.BRIGHT}[ Boinker{Style.RESET_ALL}"
