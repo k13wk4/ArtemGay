@@ -50,7 +50,7 @@ $liveOpId = Get-LiveOpId
 Write-Output "LiveOpId: $liveOpId"
 
 $token = Get-token
-Write-Output "token received successfully"
+Write-Output "Token received successfully"
 
 $headers["authorization"] = "$token"
 
