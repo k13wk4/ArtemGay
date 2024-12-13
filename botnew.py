@@ -813,28 +813,31 @@ class Boinkers:
 
                                     if multiplier is not None:
                                         spin = self.spin_wheel(token, 'SlotMachine', live_op_id, multiplier)
-                                        if spin:
-                                            energy = spin['userGameEnergy']['energy']
-                                            reward = spin['prize']['prizeValue']
-                                            reward_type = spin.get('prize', {}).get('prizeTypeName', 'Gae')
-                                            user_gae_resource_prize = spin.get('userGae', {}).get('gaeResource', 0)
-
+                                        if not spin:  # Если вращение не удалось (spin вернул None или False)
                                             self.log(
-                                                f"{Fore.GREEN + Style.BRIGHT}[ИНФО]{Style.RESET_ALL} Вращение успешно: "
-                                                f"Тип: {Fore.WHITE + Style.BRIGHT}{game_type}{Style.RESET_ALL}, Награда: "
-                                                f"{Fore.WHITE + Style.BRIGHT}{reward}{Style.RESET_ALL} ({Fore.WHITE + Style.BRIGHT}{reward_type}{Style.RESET_ALL}), "
-                                                f"Осталось энергии: {Fore.WHITE + Style.BRIGHT}{energy}{Style.RESET_ALL}, "
-                                                f"Множитель: {Fore.WHITE + Style.BRIGHT}{multiplier}{Style.RESET_ALL}, "
-                                                f"Gae ресурс: {Fore.WHITE + Style.BRIGHT}{user_gae_resource_prize}{Style.RESET_ALL}"
-                                            )
+                                                f"{Fore.RED + Style.BRIGHT}[ОШИБКА]{Style.RESET_ALL} Вращение не удалось. Выход из цикла.")
+                                            break  # Выход из цикла while
+                                        energy = spin['userGameEnergy']['energy']
+                                        reward = spin['prize']['prizeValue']
+                                        reward_type = spin.get('prize', {}).get('prizeTypeName', 'Gae')
+                                        user_gae_resource_prize = spin.get('userGae', {}).get('gaeResource', 0)
 
-                                            if user_gae_resource_prize > gae_needed:
-                                                self.log(
-                                                    f"{Fore.GREEN + Style.BRIGHT}[УСПЕХ]{Style.RESET_ALL} Gae Ресурс "
-                                                    f"({Fore.WHITE + Style.BRIGHT}{user_gae_resource_prize}{Style.RESET_ALL}) превысил необходимый "
-                                                    f"({Fore.WHITE + Style.BRIGHT}{gae_needed}{Style.RESET_ALL}). Останавливаем вращения."
-                                                )
-                                                return
+                                        self.log(
+                                            f"{Fore.GREEN + Style.BRIGHT}[ИНФО]{Style.RESET_ALL} Вращение успешно: "
+                                            f"Тип: {Fore.WHITE + Style.BRIGHT}{game_type}{Style.RESET_ALL}, Награда: "
+                                            f"{Fore.WHITE + Style.BRIGHT}{reward}{Style.RESET_ALL} ({Fore.WHITE + Style.BRIGHT}{reward_type}{Style.RESET_ALL}), "
+                                            f"Осталось энергии: {Fore.WHITE + Style.BRIGHT}{energy}{Style.RESET_ALL}, "
+                                            f"Множитель: {Fore.WHITE + Style.BRIGHT}{multiplier}{Style.RESET_ALL}, "
+                                            f"Gae ресурс: {Fore.WHITE + Style.BRIGHT}{user_gae_resource_prize}{Style.RESET_ALL}"
+                                        )
+
+                                        if user_gae_resource_prize > gae_needed:
+                                            self.log(
+                                                f"{Fore.GREEN + Style.BRIGHT}[УСПЕХ]{Style.RESET_ALL} Gae Ресурс "
+                                                f"({Fore.WHITE + Style.BRIGHT}{user_gae_resource_prize}{Style.RESET_ALL}) превысил необходимый "
+                                                f"({Fore.WHITE + Style.BRIGHT}{gae_needed}{Style.RESET_ALL}). Останавливаем вращения."
+                                            )
+                                            break
 
                                     time.sleep(1)  # Задержка для избежания ограничения API
 
