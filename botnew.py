@@ -110,15 +110,7 @@ class Boinkers:
                 return element
             except (requests.RequestException, requests.Timeout, ValueError):
                 if attempt < retries - 1:
-                    print(
-                        f"{Fore.CYAN + Style.BRIGHT}[ {datetime.now().astimezone(wib).strftime('%x %X %Z')} ]{Style.RESET_ALL}"
-                        f"{Fore.WHITE + Style.BRIGHT} | {Style.RESET_ALL}"
-                        f"{Fore.RED + Style.BRIGHT}[ ERROR ]{Style.RESET_ALL}"
-                        f"{Fore.YELLOW + Style.BRIGHT} Retrying... {Style.RESET_ALL}"
-                        f"{Fore.WHITE + Style.BRIGHT}{attempt + 1}/{retries}{Style.RESET_ALL}",
-                        end="\r",
-                        flush=True
-                    )
+                    self.print_retry_message(attempt, retries)
                     time.sleep(5)
                 else:
                     return None
