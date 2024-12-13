@@ -632,7 +632,7 @@ class Boinkers:
                     while True:
                         for upgrade in upgrade_type:
                             upgrade_boinker = self.upgrade_boinker(token, upgrade_type=upgrade)
-                            time.sleep(5)
+                            time.sleep(7)
 
                             if upgrade_boinker:
                                 boink_id = upgrade_boinker['userBoinkers']['currentBoinkerProgression']['id']
