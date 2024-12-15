@@ -24,11 +24,11 @@ game_thresholds = {
         (0, 1)       # Если энергия меньше 1,000 использовать множитель 1
     ]
 }
-dc4_balance_max = 20000
-dc4_balance_min = 15000
+dc4_balance_max = 2000
+dc4_balance_min = 1500
 
 # Крутить слот машину или нет
-USE_GAE = False
+USE_GAE = True
 
 class Boinkers:
     def __init__(self) -> None:
@@ -777,7 +777,9 @@ class Boinkers:
                             f"Ресурс последней вехи: {Fore.WHITE + Style.BRIGHT}{self.last_gae_resource}{Style.RESET_ALL}"
                         )
 
-                        gae_needed = self.last_gae_resource + self.do_last_gae_resource
+                        # gae_needed = self.last_gae_resource + self.do_last_gae_resource
+
+                        gae_needed = self.do_last_gae_resource
 
                         games_energy = user.get('gamesEnergy', {})
                         if user_gae_resource < gae_needed:
