@@ -157,7 +157,7 @@ class Boinkers:
                     return None
         
     def claim_booster(self, token: str, retries=3):
-        url = 'https://boink.boinkers.co/api/boinkers/addShitBooster?p=android'
+        url = 'https://boink.boinkers.co/api/boinkers/addShitBooster'
         data = json.dumps({'multiplier':2, 'optionNumber':1})
         headers = {
             **self.headers,
@@ -181,7 +181,7 @@ class Boinkers:
     
 
     def claim_inbox(self, token: str, message_id: str, retries=3):
-        url = 'https://boink.boinkers.co/api/inboxMessages/claimInboxMessagePrize?p=android'
+        url = 'https://boink.boinkers.co/api/inboxMessages/claimInboxMessagePrize'
         data = json.dumps({'inboxMessageId':message_id})
         headers = {
             **self.headers,
@@ -206,7 +206,7 @@ class Boinkers:
         if game_type == 'WheelOfFortune':
             data = json.dumps({'liveOpId': live_op_id} if live_op_id else {})
         elif game_type == 'SlotMachine':
-            data = json.dumps({})  # Исправлено: создаем JSON даже для пустого словаря
+            data = json.dumps({})
         else:
             raise ValueError(f"Unexpected game type: {game_type}")
         headers = {
@@ -234,7 +234,7 @@ class Boinkers:
                     return None
 
     def open_elevator(self, token: str, live_op_id: str, retries=3):
-        url = 'https://boink.boinkers.co/api/play/openElevator?p=android'
+        url = 'https://boink.boinkers.co/api/play/openElevator'
         data = json.dumps({'liveOpId':live_op_id})
         headers = {
             **self.headers,
@@ -257,7 +257,7 @@ class Boinkers:
                     return None
         
     def quit_elevator(self, token: str, retries=3):
-        url = 'https://boink.boinkers.co/api/play/quitAndCollect?p=android'
+        url = 'https://boink.boinkers.co/api/play/quitAndCollect'
         data = {}
         headers = {
             **self.headers,
@@ -280,7 +280,7 @@ class Boinkers:
                     return None
 
     def upgrade_boinker(self, token: str, upgrade_type: str, retries=3):
-        url = f'https://boink.boinkers.co/api/boinkers/{upgrade_type}?p=android'
+        url = f'https://boink.boinkers.co/api/boinkers/{upgrade_type}'
         data = {}
         headers = {
             **self.headers,
@@ -300,7 +300,7 @@ class Boinkers:
                     return None
 
     def gae_data(self, token: str, retries=3):
-        url = 'https://boink.boinkers.co/api/gae/getGaeDataForUser?p=android'
+        url = 'https://boink.boinkers.co/api/gae/getGaeDataForUser'
         headers = {
             **self.headers,
             'Authorization': token,
@@ -319,7 +319,7 @@ class Boinkers:
                     return None
     
     def raffle_data(self, token: str, retries=3):
-        url = 'https://boink.boinkers.co/api/raffle/getRafflesData?p=android'
+        url = 'https://boink.boinkers.co/api/raffle/getRafflesData'
         headers = {
             **self.headers,
             'Authorization': token,
@@ -338,7 +338,7 @@ class Boinkers:
                     return None
         
     def claim_raffle(self, token: str, retries=3):
-        url = 'https://boink.boinkers.co/api/raffle/claimTicketForUser?p=android'
+        url = 'https://boink.boinkers.co/api/raffle/claimTicketForUser'
         data = {}
         headers = {
             **self.headers,
@@ -363,7 +363,7 @@ class Boinkers:
 
 
     def event_id(self, retries=3):
-        url = 'https://boink.boinkers.co/public/data/config?p=android'
+        url = 'https://boink.boinkers.co/public/data/config'
         headers = {
             **self.headers,
             'Content-Type': 'application/json'
@@ -381,7 +381,7 @@ class Boinkers:
                     return None
 
     def check_progress_id(self, token: str, operation_id: str, retries=3):
-        url = f'https://boink.boinkers.co/api/liveOps/dynamic/{operation_id}/progress?p=android'
+        url = f'https://boink.boinkers.co/api/liveOps/dynamic/{operation_id}/progress'
         headers = {
             **self.headers,
             'Authorization': token,
