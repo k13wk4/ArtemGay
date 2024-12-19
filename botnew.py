@@ -869,9 +869,9 @@ class Boinkers:
                             f"Ресурс последней вехи: {Fore.WHITE + Style.BRIGHT}{self.last_gae_resource}{Style.RESET_ALL}"
                         )
 
-                        # gae_needed = self.last_gae_resource + self.do_last_gae_resource
+                        gae_needed = self.last_gae_resource + self.do_last_gae_resource
 
-                        gae_needed = self.do_last_gae_resource
+                        # gae_needed = self.do_last_gae_resource
 
                         games_energy = user.get('gamesEnergy', {})
                         if user_gae_resource < gae_needed:
