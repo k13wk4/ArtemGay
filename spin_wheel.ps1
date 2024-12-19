@@ -1,6 +1,6 @@
 # Script: spin_wheel.ps1
 # Настройки
-$minEnergy = 25000 # Мин. энергия для продолжения
+$minEnergy = 30000 # Мин. энергия для продолжения
 $multiplier = 3 # Множитель для spinWheelOfFortune
 
 $scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Definition

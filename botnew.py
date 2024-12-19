@@ -1,11 +1,14 @@
-import requests
-import cloudscraper
-import json
-import os
+import requests, cloudscraper, json, os, time, pytz, sys
 from datetime import datetime
-import time
-import pytz
 from colorama import Fore, Style
+from loguru import logger
+
+logger.remove()
+logger.add(sink=sys.stdout, format="<red>[Boinkers]</red> | <white>{time:YYYY-MM-DD HH:mm:ss}</white>"
+                                   " | <level>{level: <8}</level>"
+                                   " | <cyan><b>{line}</b></cyan>"
+                                   " - <white><b>{message}</b></white>")
+logger = logger.opt(colors=True)
 
 wib = pytz.timezone('Europe/Kyiv')
 # Настройки порогов и множителей для каждого типа игры
@@ -79,18 +82,6 @@ class Boinkers:
         minutes, seconds = divmod(remainder, 60)
         return f"{int(hours):02}:{int(minutes):02}:{int(seconds):02}"
 
-    @staticmethod
-    def print_retry_message(attempt, retries):
-        print(
-            f"{Fore.CYAN + Style.BRIGHT}[ {datetime.now().astimezone(wib).strftime('%x %X %Z')} ]{Style.RESET_ALL}"
-            f"{Fore.WHITE + Style.BRIGHT} | {Style.RESET_ALL}"
-            f"{Fore.RED + Style.BRIGHT}[ ERROR ]{Style.RESET_ALL}"
-            f"{Fore.YELLOW + Style.BRIGHT} Retrying... {Style.RESET_ALL}"
-            f"{Fore.WHITE + Style.BRIGHT}{attempt + 1}/{retries}{Style.RESET_ALL}",
-            end="\r",
-            flush=True
-        )
-
     def load_op_id(self, retries=5):
         url = 'https://boink.boinkers.co/public/data/config?p=android'
         headers = {
@@ -113,7 +104,13 @@ class Boinkers:
                 return element
             except (requests.RequestException, requests.Timeout, ValueError):
                 if attempt < retries - 1:
-                    self.print_retry_message(attempt, retries)
+                    logger.error(
+            f"{Fore.RED + Style.BRIGHT}[ Ошибка в получении live op id]{Style.RESET_ALL}"
+            f"{Fore.YELLOW + Style.BRIGHT} Пытаемся снова... {Style.RESET_ALL}"
+            f"{Fore.WHITE + Style.BRIGHT}{attempt + 1}/{retries}{Style.RESET_ALL}",
+            end="\r",
+            flush=True
+        )
                     time.sleep(5)
                 else:
                     return None
@@ -132,7 +129,13 @@ class Boinkers:
                 return response.json()
             except (requests.RequestException, requests.Timeout, ValueError):
                 if attempt < retries - 1:
-                    self.print_retry_message(attempt, retries)
+                    logger.error(
+            f"{Fore.RED + Style.BRIGHT}[ Ошибка при логине]{Style.RESET_ALL}"
+            f"{Fore.YELLOW + Style.BRIGHT} Пытаемся снова... {Style.RESET_ALL}"
+            f"{Fore.WHITE + Style.BRIGHT}{attempt + 1}/{retries}{Style.RESET_ALL}",
+            end="\r",
+            flush=True
+        )
                     time.sleep(2)
                 else:
                     return None
@@ -151,7 +154,13 @@ class Boinkers:
                 return response.json()
             except (requests.RequestException, requests.Timeout, ValueError):
                 if attempt < retries - 1:
-                    self.print_retry_message(attempt, retries)
+                    logger.error(
+            f"{Fore.RED + Style.BRIGHT}[ Ошибка при получении информации о персонаже]{Style.RESET_ALL}"
+            f"{Fore.YELLOW + Style.BRIGHT} Пытаемся снова... {Style.RESET_ALL}"
+            f"{Fore.WHITE + Style.BRIGHT}{attempt + 1}/{retries}{Style.RESET_ALL}",
+            end="\r",
+            flush=True
+        )
                     time.sleep(2)
                 else:
                     return None
@@ -174,7 +183,13 @@ class Boinkers:
                 return response.json()
             except (requests.RequestException, requests.Timeout, ValueError):
                 if attempt < retries - 1:
-                    self.print_retry_message(attempt, retries)
+                    logger.error(
+            f"{Fore.RED + Style.BRIGHT}[ Ошибка в получении бустера]{Style.RESET_ALL}"
+            f"{Fore.YELLOW + Style.BRIGHT} Пытаемся снова... {Style.RESET_ALL}"
+            f"{Fore.WHITE + Style.BRIGHT}{attempt + 1}/{retries}{Style.RESET_ALL}",
+            end="\r",
+            flush=True
+        )
                     time.sleep(2)
                 else:
                     return None
@@ -195,7 +210,13 @@ class Boinkers:
                 return response.json()
             except (requests.RequestException, requests.Timeout, ValueError):
                 if attempt < retries - 1:
-                    self.print_retry_message(attempt, retries)
+                    logger.error(
+            f"{Fore.RED + Style.BRIGHT}[ Ошибка в получении входящих сообщений]{Style.RESET_ALL}"
+            f"{Fore.YELLOW + Style.BRIGHT} Пытаемся снова... {Style.RESET_ALL}"
+            f"{Fore.WHITE + Style.BRIGHT}{attempt + 1}/{retries}{Style.RESET_ALL}",
+            end="\r",
+            flush=True
+        )
                     time.sleep(2)
                 else:
                     return None
@@ -218,16 +239,22 @@ class Boinkers:
             try:
                 response = self.scraper.post(url, headers=headers, data=data, timeout=10)
                 if response.status_code == 403:
-                    print(f"{Fore.YELLOW + Style.BRIGHT}[ WARNING ] {Style.RESET_ALL} Forbidden access detected.")
+                    logger.warning(f"{Fore.YELLOW + Style.BRIGHT}[ WARNING ] {Style.RESET_ALL} Forbidden access detected.")
                     return None
                 response.raise_for_status()
                 return response.json()
             except (cloudscraper.exceptions.CloudflareException, requests.RequestException, ValueError) as e:
                 if attempt < retries - 1:
-                    self.print_retry_message(attempt, retries)
+                    logger.error(
+            f"{Fore.RED + Style.BRIGHT}[ Ошибка при вращении]{Style.RESET_ALL}"
+            f"{Fore.YELLOW + Style.BRIGHT} Пытаемся снова... {Style.RESET_ALL}"
+            f"{Fore.WHITE + Style.BRIGHT}{attempt + 1}/{retries}{Style.RESET_ALL}",
+            end="\r",
+            flush=True
+        )
                     time.sleep(2)
                 else:
-                    print(
+                    logger.error(
                         f"{Fore.RED + Style.BRIGHT}[ ОШИБКА ] {Style.RESET_ALL}"
                         f"Не удалось после {retries} попыток: {str(e)}"
                     )
@@ -251,7 +278,13 @@ class Boinkers:
                 return response.json()
             except (requests.RequestException, requests.Timeout, ValueError):
                 if attempt < retries - 1:
-                    self.print_retry_message(attempt, retries)
+                    logger.error(
+            f"{Fore.RED + Style.BRIGHT}[ Ошибка при открытии лифта]{Style.RESET_ALL}"
+            f"{Fore.YELLOW + Style.BRIGHT} Пытаемся снова... {Style.RESET_ALL}"
+            f"{Fore.WHITE + Style.BRIGHT}{attempt + 1}/{retries}{Style.RESET_ALL}",
+            end="\r",
+            flush=True
+        )
                     time.sleep(2)
                 else:
                     return None
@@ -274,7 +307,13 @@ class Boinkers:
                 return response.json()
             except (requests.RequestException, requests.Timeout, ValueError):
                 if attempt < retries - 1:
-                    self.print_retry_message(attempt, retries)
+                    logger.error(
+            f"{Fore.RED + Style.BRIGHT}[ Ошибка при выходе с лифта]{Style.RESET_ALL}"
+            f"{Fore.YELLOW + Style.BRIGHT} Пытаемся снова... {Style.RESET_ALL}"
+            f"{Fore.WHITE + Style.BRIGHT}{attempt + 1}/{retries}{Style.RESET_ALL}",
+            end="\r",
+            flush=True
+        )
                     time.sleep(2)
                 else:
                     return None
@@ -294,7 +333,13 @@ class Boinkers:
                 return response.json()
             except (requests.RequestException, requests.Timeout, ValueError):
                 if attempt < retries - 1:
-                    self.print_retry_message(attempt, retries)
+                    logger.error(
+            f"{Fore.RED + Style.BRIGHT}[ Ошибка при улучшении]{Style.RESET_ALL}"
+            f"{Fore.YELLOW + Style.BRIGHT} Пытаемся снова... {Style.RESET_ALL}"
+            f"{Fore.WHITE + Style.BRIGHT}{attempt + 1}/{retries}{Style.RESET_ALL}",
+            end="\r",
+            flush=True
+        )
                     time.sleep(2)
                 else:
                     return None
@@ -313,7 +358,13 @@ class Boinkers:
                 return response.json()
             except (requests.RequestException, requests.Timeout, ValueError):
                 if attempt < retries - 1:
-                    self.print_retry_message(attempt, retries)
+                    logger.error(
+            f"{Fore.RED + Style.BRIGHT}[ Ошибка в получении GAE информации]{Style.RESET_ALL}"
+            f"{Fore.YELLOW + Style.BRIGHT} Пытаемся снова... {Style.RESET_ALL}"
+            f"{Fore.WHITE + Style.BRIGHT}{attempt + 1}/{retries}{Style.RESET_ALL}",
+            end="\r",
+            flush=True
+        )
                     time.sleep(2)
                 else:
                     return None
@@ -332,7 +383,13 @@ class Boinkers:
                 return response.json()
             except (requests.RequestException, requests.Timeout, ValueError):
                 if attempt < retries - 1:
-                    self.print_retry_message(attempt, retries)
+                    logger.error(
+            f"{Fore.RED + Style.BRIGHT}[ Ошибка в получении информации о раффле]{Style.RESET_ALL}"
+            f"{Fore.YELLOW + Style.BRIGHT} Пытаемся снова... {Style.RESET_ALL}"
+            f"{Fore.WHITE + Style.BRIGHT}{attempt + 1}/{retries}{Style.RESET_ALL}",
+            end="\r",
+            flush=True
+        )
                     time.sleep(2)
                 else:
                     return None
@@ -355,7 +412,13 @@ class Boinkers:
                 return response.json()
             except (requests.RequestException, requests.Timeout, ValueError):
                 if attempt < retries - 1:
-                    self.print_retry_message(attempt, retries)
+                    logger.error(
+            f"{Fore.RED + Style.BRIGHT}[ Ошибка в получении билетов рафла]{Style.RESET_ALL}"
+            f"{Fore.YELLOW + Style.BRIGHT} Пытаемся снова... {Style.RESET_ALL}"
+            f"{Fore.WHITE + Style.BRIGHT}{attempt + 1}/{retries}{Style.RESET_ALL}",
+            end="\r",
+            flush=True
+        )
                     time.sleep(2)
                 else:
                     return None
@@ -375,7 +438,13 @@ class Boinkers:
                 return response.json()
             except (requests.RequestException, requests.Timeout, ValueError):
                 if attempt < retries - 1:
-                    self.print_retry_message(attempt, retries)
+                    logger.error(
+            f"{Fore.RED + Style.BRIGHT}[ Ошибка в получении айди ивентов]{Style.RESET_ALL}"
+            f"{Fore.YELLOW + Style.BRIGHT} Пытаемся снова... {Style.RESET_ALL}"
+            f"{Fore.WHITE + Style.BRIGHT}{attempt + 1}/{retries}{Style.RESET_ALL}",
+            end="\r",
+            flush=True
+        )
                     time.sleep(2)
                 else:
                     return None
@@ -394,7 +463,13 @@ class Boinkers:
                 return response.json()
             except (requests.RequestException, requests.Timeout, ValueError):
                 if attempt < retries - 1:
-                    self.print_retry_message(attempt, retries)
+                    logger.error(
+            f"{Fore.RED + Style.BRIGHT}[ Ошибка при проверке прогресса ивентов по айди]{Style.RESET_ALL}"
+            f"{Fore.YELLOW + Style.BRIGHT} Пытаемся снова... {Style.RESET_ALL}"
+            f"{Fore.WHITE + Style.BRIGHT}{attempt + 1}/{retries}{Style.RESET_ALL}",
+            end="\r",
+            flush=True
+        )
                     time.sleep(2)
                 else:
                     return None
@@ -411,7 +486,7 @@ class Boinkers:
             try:
                 response = self.scraper.post(url, headers=headers, json=data, timeout=10)
                 if response.status_code == 402:
-                    self.log(f"{Fore.RED + Style.BRIGHT}Ошибка недостаточно средств для idx: {idx}{Style.RESET_ALL}")
+                    logger.info(f"{Fore.RED + Style.BRIGHT}Ошибка недостаточно средств для idx: {idx}{Style.RESET_ALL}")
                     return None
                 if response.status_code == 403:
                     return None
@@ -420,7 +495,13 @@ class Boinkers:
                 return response.json()
             except (requests.RequestException, requests.Timeout, ValueError):
                 if attempt < retries - 1:
-                    self.print_retry_message(attempt, retries)
+                    logger.error(
+            f"{Fore.RED + Style.BRIGHT}[ Ошибка в получении наград ивентов]{Style.RESET_ALL}"
+            f"{Fore.YELLOW + Style.BRIGHT} Пытаемся снова... {Style.RESET_ALL}"
+            f"{Fore.WHITE + Style.BRIGHT}{attempt + 1}/{retries}{Style.RESET_ALL}",
+            end="\r",
+            flush=True
+        )
                     time.sleep(2)
                 else:
                     return None
@@ -431,7 +512,7 @@ class Boinkers:
         token = login_info['token']
 
         if not token:
-            self.log(
+            logger.info(
                 f"{Fore.MAGENTA + Style.BRIGHT}[ Аккаунт{Style.RESET_ALL}"
                 f"{Fore.RED + Style.BRIGHT} Запрос неверен {Style.RESET_ALL}"
                 f"{Fore.MAGENTA + Style.BRIGHT}]{Style.RESET_ALL}"
@@ -451,67 +532,78 @@ class Boinkers:
                 dc4_balance = dynamic_currencies.get('dc4', {}).get('balance', 0)
 
                 games_energy = user.get('gamesEnergy', {})
-                if dc4_balance < dc4_balance_min:
-                    if games_energy:
-                        self.log(
-                            f"{Fore.YELLOW + Style.BRIGHT}[ВНИМАНИЕ]{Style.RESET_ALL} Ресурс пользователя GAE "
-                            f"({Fore.WHITE + Style.BRIGHT}{dc4_balance}{Style.RESET_ALL}) меньше необходимого "
-                            f"({Fore.WHITE + Style.BRIGHT}{dc4_balance_max}{Style.RESET_ALL}). Проверяем наличие энергии..."
-                        )
+                if live_op_id is None:
+                    logger.warning(
+                        f"{Fore.MAGENTA + Style.BRIGHT}[ Boinkers{Style.RESET_ALL}"
+                        f"{Fore.YELLOW + Style.BRIGHT} No Live Op ID Available {Style.RESET_ALL}"
+                        f"{Fore.MAGENTA + Style.BRIGHT}-{Style.RESET_ALL}"
+                        f"{Fore.WHITE + Style.BRIGHT} Skipping energy check and game processing{Style.RESET_ALL}"
+                        f"{Fore.MAGENTA + Style.BRIGHT}]{Style.RESET_ALL}"
+                    )
+                else:
+                    if dc4_balance < dc4_balance_min:
+                        if games_energy:
+                            logger.info(
+                                f"{Fore.YELLOW + Style.BRIGHT}[ВНИМАНИЕ]{Style.RESET_ALL} Ресурс пользователя GAE "
+                                f"({Fore.WHITE + Style.BRIGHT}{dc4_balance}{Style.RESET_ALL}) меньше необходимого "
+                                f"({Fore.WHITE + Style.BRIGHT}{dc4_balance_max}{Style.RESET_ALL}). Проверяем наличие энергии..."
+                            )
 
-                        for game_type, details in games_energy.items():
-                            if game_type == 'wheelOfFortune' and game_type in game_thresholds:
-                                energy = details['energy']
-                                self.log(
-                                    f"{Fore.CYAN + Style.BRIGHT}[ИНФО]{Style.RESET_ALL} Энергии "
-                                    f"({Fore.WHITE + Style.BRIGHT}{energy}{Style.RESET_ALL}) достаточно для игры {Fore.WHITE + Style.BRIGHT}{game_type}{Style.RESET_ALL}."
-                                )
-                                thresholds = game_thresholds[game_type]
-                                while energy > 0:
-                                    multiplier = next((mult for threshold, mult in thresholds if energy > threshold),
-                                                      thresholds[-1][1])
-                                    spin_result = self.spin_wheel(token, 'WheelOfFortune', live_op_id, multiplier)
-                                    if spin_result is None:
-                                        print(
-                                            f"Получен None при попытке вызова spin_wheel с параметрами: live_op_id={live_op_id}, multiplier={multiplier}")
-                                    if spin_result:
-                                        energy = spin_result['userGameEnergy']['energy']
-                                        reward = spin_result['prize']['prizeValue']
-                                        reward_type = spin_result.get('prize', {}).get('prizeTypeName', 'Gae')
-                                        new_dynamic_currencies = spin_result.get('newDynamicCurrencies', {})
-                                        user_dc4_balance = new_dynamic_currencies.get('dc4', {}).get('balance', 0)
+                            for game_type, details in games_energy.items():
+                                if game_type == 'wheelOfFortune' and game_type in game_thresholds:
+                                    energy = details['energy']
+                                    logger.info(
+                                        f"{Fore.CYAN + Style.BRIGHT}[ИНФО]{Style.RESET_ALL} Энергии "
+                                        f"({Fore.WHITE + Style.BRIGHT}{energy}{Style.RESET_ALL}) достаточно для игры {Fore.WHITE + Style.BRIGHT}{game_type}{Style.RESET_ALL}."
+                                    )
+                                    thresholds = game_thresholds[game_type]
+                                    while energy > 0:
+                                        multiplier = next(
+                                            (mult for threshold, mult in thresholds if energy > threshold),
+                                            thresholds[-1][1])
+                                        spin_result = self.spin_wheel(token, 'WheelOfFortune', live_op_id, multiplier)
+                                        if spin_result is None:
+                                            logger.error(
+                                                f"Получен None при попытке вызова spin_wheel с параметрами: live_op_id={live_op_id}, multiplier={multiplier}")
+                                        if spin_result:
+                                            energy = spin_result['userGameEnergy']['energy']
+                                            reward = spin_result['prize']['prizeValue']
+                                            reward_type = spin_result.get('prize', {}).get('prizeTypeName', 'Gae')
+                                            new_dynamic_currencies = spin_result.get('newDynamicCurrencies', {})
+                                            user_dc4_balance = new_dynamic_currencies.get('dc4', {}).get('balance', 0)
 
-                                        self.log(
-                                            f"{Fore.GREEN + Style.BRIGHT}[ИНФО]{Style.RESET_ALL} Вращение успешно: "
-                                            f"Тип: {Fore.WHITE + Style.BRIGHT}{game_type}{Style.RESET_ALL}, Награда: "
-                                            f"{Fore.WHITE + Style.BRIGHT}{reward}{Style.RESET_ALL} ({Fore.WHITE + Style.BRIGHT}{reward_type}{Style.RESET_ALL}), "
-                                            f"Осталось энергии: {Fore.WHITE + Style.BRIGHT}{energy}{Style.RESET_ALL}, "
-                                            f"Множитель: {Fore.WHITE + Style.BRIGHT}{multiplier}{Style.RESET_ALL}, "
-                                            f"DC4 баланс: {Fore.WHITE + Style.BRIGHT}{user_dc4_balance}{Style.RESET_ALL}"
-                                        )
+                                            logger.info(
+                                                f"{Fore.GREEN + Style.BRIGHT}[ИНФО]{Style.RESET_ALL} Вращение успешно: "
+                                                f"Тип: {Fore.WHITE + Style.BRIGHT}{game_type}{Style.RESET_ALL}, Награда: "
+                                                f"{Fore.WHITE + Style.BRIGHT}{reward}{Style.RESET_ALL} ({Fore.WHITE + Style.BRIGHT}{reward_type}{Style.RESET_ALL}), "
+                                                f"Осталось энергии: {Fore.WHITE + Style.BRIGHT}{energy}{Style.RESET_ALL}, "
+                                                f"Множитель: {Fore.WHITE + Style.BRIGHT}{multiplier}{Style.RESET_ALL}, "
+                                                f"DC4 баланс: {Fore.WHITE + Style.BRIGHT}{user_dc4_balance}{Style.RESET_ALL}"
+                                            )
 
-                                        if user_dc4_balance >= dc4_balance_max:
-                                            self.log(
-                                                f"{Fore.GREEN + Style.BRIGHT}[УСПЕХ]{Style.RESET_ALL} DC4 Ресурс "
-                                                f"({Fore.WHITE + Style.BRIGHT}{user_dc4_balance}{Style.RESET_ALL}) превысил необходимый "
-                                                f"({Fore.WHITE + Style.BRIGHT}{dc4_balance_max}{Style.RESET_ALL}). Останавливаем вращения."
+                                            if user_dc4_balance >= dc4_balance_max:
+                                                logger.info(
+                                                    f"{Fore.GREEN + Style.BRIGHT}[УСПЕХ]{Style.RESET_ALL} DC4 Ресурс "
+                                                    f"({Fore.WHITE + Style.BRIGHT}{user_dc4_balance}{Style.RESET_ALL}) превысил необходимый "
+                                                    f"({Fore.WHITE + Style.BRIGHT}{dc4_balance_max}{Style.RESET_ALL}). Останавливаем вращения."
+                                                )
+                                                break
+                                        else:
+                                            logger.info(
+                                                f"{Fore.RED + Style.BRIGHT}[ОШИБКА]{Style.RESET_ALL} . Переходим к следующему этапу."
                                             )
                                             break
-                                    else:
-                                        self.log(
-                                            f"{Fore.RED + Style.BRIGHT}[ОШИБКА]{Style.RESET_ALL} . Переходим к следующему этапу."
-                                        )
-                                        break  # Выходим из цикла при ошибке, переходим к следующему этапу
 
-                                    time.sleep(1)  # Задержка для избежания ограничения API
+                                        time.sleep(1)
 
-                else:
-                    self.log(
-                        f"{Fore.CYAN + Style.BRIGHT}[ИНФО]{Style.RESET_ALL} Ресурс DC4 "
-                        f"({Fore.WHITE + Style.BRIGHT}{dc4_balance}{Style.RESET_ALL}) достаточен "
-                        f"({Fore.WHITE + Style.BRIGHT}{dc4_balance_min}{Style.RESET_ALL}). Переходим к следующей задаче."
-                    )
-                self.log(
+                    else:
+                        logger.info(
+                            f"{Fore.CYAN + Style.BRIGHT}[ИНФО]{Style.RESET_ALL} Ресурс DC4 "
+                            f"({Fore.WHITE + Style.BRIGHT}{dc4_balance}{Style.RESET_ALL}) достаточен "
+                            f"({Fore.WHITE + Style.BRIGHT}{dc4_balance_min}{Style.RESET_ALL}). Переходим к следующей задаче."
+                        )
+
+                logger.info(
                     f"{Fore.MAGENTA + Style.BRIGHT}[ Аккаунт{Style.RESET_ALL}"
                     f"{Fore.WHITE + Style.BRIGHT} {user['userName']} {Style.RESET_ALL}"
                     f"{Fore.MAGENTA + Style.BRIGHT}]{Style.RESET_ALL} [ Баланс{Style.RESET_ALL} "
@@ -526,13 +618,13 @@ class Boinkers:
 
                 claim_booster = self.claim_booster(token)
                 if claim_booster:
-                    self.log(
+                    logger.info(
                         f"{Fore.MAGENTA + Style.BRIGHT}[ Boost Mining{Style.RESET_ALL}"
                         f"{Fore.GREEN + Style.BRIGHT} Is Claimed {Style.RESET_ALL}"
                         f"{Fore.MAGENTA + Style.BRIGHT}]{Style.RESET_ALL}"
                     )
                 else:
-                    self.log(
+                    logger.info(
                         f"{Fore.MAGENTA + Style.BRIGHT}[ Boost Mining{Style.RESET_ALL}"
                         f"{Fore.YELLOW + Style.BRIGHT} Is Already Claimed {Style.RESET_ALL}"
                         f"{Fore.MAGENTA + Style.BRIGHT}]{Style.RESET_ALL}"
@@ -551,7 +643,7 @@ class Boinkers:
                             if claim_inbox:
                                 reward = claim_inbox['gottenPrize']['prizeValue']
                                 reward_type = claim_inbox.get('gottenPrize', {}).get('prizeName', 'Gold')
-                                self.log(
+                                logger.info(
                                     f"{Fore.MAGENTA + Style.BRIGHT}[ Inbox{Style.RESET_ALL}"
                                     f"{Fore.WHITE + Style.BRIGHT} {message['title']} {Style.RESET_ALL}"
                                     f"{Fore.GREEN + Style.BRIGHT}Is Claimed{Style.RESET_ALL}"
@@ -560,7 +652,7 @@ class Boinkers:
                                     f"{Fore.MAGENTA + Style.BRIGHT}]{Style.RESET_ALL}"
                                 )
                             else:
-                                self.log(
+                                logger.info(
                                     f"{Fore.MAGENTA + Style.BRIGHT}[ Inbox{Style.RESET_ALL}"
                                     f"{Fore.WHITE + Style.BRIGHT} {message['title']} {Style.RESET_ALL}"
                                     f"{Fore.RED + Style.BRIGHT}Isn't Claimed{Style.RESET_ALL}"
@@ -570,13 +662,13 @@ class Boinkers:
                             completed = True
 
                     if completed:
-                        self.log(
+                        logger.info(
                                 f"{Fore.MAGENTA + Style.BRIGHT}[ Inbox{Style.RESET_ALL}"
                                 f"{Fore.GREEN + Style.BRIGHT} Clear {Style.RESET_ALL}"
                                 f"{Fore.MAGENTA + Style.BRIGHT}]{Style.RESET_ALL}"
                             )
                 else:
-                    self.log(
+                    logger.info(
                         f"{Fore.MAGENTA + Style.BRIGHT}[ Inbox{Style.RESET_ALL}"
                         f"{Fore.YELLOW + Style.BRIGHT} No Available Message {Style.RESET_ALL}"
                         f"{Fore.MAGENTA + Style.BRIGHT}]{Style.RESET_ALL}"
@@ -589,7 +681,7 @@ class Boinkers:
                         reward = open_elevator['prize']['prizeValue']
                         reward_type = open_elevator['prize']['prizeTypeName']
 
-                        self.log(
+                        logger.info(
                             f"{Fore.MAGENTA + Style.BRIGHT}[ Elevator{Style.RESET_ALL}"
                             f"{Fore.WHITE + Style.BRIGHT} Is Opened {Style.RESET_ALL}"
                             f"{Fore.MAGENTA + Style.BRIGHT}] [ Result{Style.RESET_ALL}"
@@ -599,7 +691,7 @@ class Boinkers:
                             f"{Fore.MAGENTA + Style.BRIGHT}]{Style.RESET_ALL}"
                         )
                     else:
-                        self.log(
+                        logger.info(
                             f"{Fore.MAGENTA + Style.BRIGHT}[ Elevator{Style.RESET_ALL}"
                             f"{Fore.YELLOW + Style.BRIGHT} No Available Attempt {Style.RESET_ALL}"
                             f"{Fore.MAGENTA + Style.BRIGHT}]{Style.RESET_ALL}"
@@ -614,7 +706,7 @@ class Boinkers:
 
                 boinkers = user['boinkers']
                 if boinkers:
-                    self.log(
+                    logger.info(
                         f"{Fore.MAGENTA + Style.BRIGHT}[ Boinker{Style.RESET_ALL}"
                         f"{Fore.WHITE + Style.BRIGHT} {boinkers['currentBoinkerProgression']['id']} {Style.RESET_ALL}"
                         f"{Fore.MAGENTA + Style.BRIGHT}-{Style.RESET_ALL}"
@@ -633,7 +725,7 @@ class Boinkers:
                                 boink_id = upgrade_boinker['userBoinkers']['currentBoinkerProgression']['id']
                                 level = upgrade_boinker['userBoinkers']['currentBoinkerProgression']['level']
 
-                                self.log(
+                                logger.info(
                                     f"{Fore.MAGENTA + Style.BRIGHT}[ Boinker{Style.RESET_ALL}"
                                      f"{Fore.GREEN + Style.BRIGHT} {'Mega ' if upgrade == 'megaUpgradeBoinkers' else ''}Upgrade Successful {Style.RESET_ALL}"
                                     f"{Fore.MAGENTA + Style.BRIGHT}] [{Style.RESET_ALL}"
@@ -644,7 +736,7 @@ class Boinkers:
 
                             else:
                                 if upgrade == 'megaUpgradeBoinkers':
-                                    self.log(
+                                    logger.info(
                                         f"{Fore.MAGENTA + Style.BRIGHT}[ Boinker{Style.RESET_ALL}"
                                         f"{Fore.RED + Style.BRIGHT} Mega Upgrade Failed {Style.RESET_ALL}"
                                         f"{Fore.MAGENTA + Style.BRIGHT}] [ Reason{Style.RESET_ALL}"
@@ -652,7 +744,7 @@ class Boinkers:
                                         f"{Fore.MAGENTA + Style.BRIGHT}]{Style.RESET_ALL}"
                                     )
                                 else:
-                                    self.log(
+                                    logger.info(
                                         f"{Fore.MAGENTA + Style.BRIGHT}[ Boinker{Style.RESET_ALL}"
                                         f"{Fore.RED + Style.BRIGHT} Isn't Upgraded {Style.RESET_ALL}"
                                         f"{Fore.MAGENTA + Style.BRIGHT}] [ Reason{Style.RESET_ALL}"
@@ -670,7 +762,7 @@ class Boinkers:
                         break
 
                 else:
-                    self.log(
+                    logger.info(
                         f"{Fore.MAGENTA + Style.BRIGHT}[ Boinker{Style.RESET_ALL}"
                         f"{Fore.RED + Style.BRIGHT} Data Is None {Style.RESET_ALL}"
                         f"{Fore.MAGENTA + Style.BRIGHT} ]{Style.RESET_ALL}"
@@ -685,7 +777,7 @@ class Boinkers:
                             operation_id = live_op['_id']
                             dynamic_live_op = live_op['dynamicLiveOp']
 
-                            self.log(
+                            logger.info(
                                 f"{Fore.MAGENTA + Style.BRIGHT}[ ID{Style.RESET_ALL}{Fore.WHITE + Style.BRIGHT} {operation_id} {Style.RESET_ALL}{Fore.MAGENTA + Style.BRIGHT}] [ Приняты в работу ]{Style.RESET_ALL}")
 
                             # Определяем количество доступных наград
@@ -717,21 +809,21 @@ class Boinkers:
                                                         None)
                                                     if milestone_response and 'prizes' in milestone_response:
                                                         prize_info = milestone_response['prizes'][0]
-                                                        self.log(
+                                                        logger.info(
                                                             f"{Fore.GREEN + Style.BRIGHT}Награда получена для milestone {idx}: {prize_info['prizeName']} - {prize_info['prizeValue']}{Style.RESET_ALL}")
                                                     else:
-                                                        self.log(
+                                                        logger.info(
                                                             f"{Fore.GREEN + Style.BRIGHT}Награда получена для milestone {idx}{Style.RESET_ALL}")
                                                     dc4_balance -= cost['price']  # Обновляем баланс для платных наград
                                                 else:
-                                                    self.log(
+                                                    logger.error(
                                                         f"{Fore.RED + Style.BRIGHT}Не удалось получить награду для idx: {idx}{Style.RESET_ALL}")
                                             else:
                                                 if cost['price'] > 1000:
-                                                    self.log(
+                                                    logger.info(
                                                         f"{Fore.YELLOW + Style.BRIGHT}Награда для idx: {idx} не получена, так как цена ({cost['price']}) больше 1000{Style.RESET_ALL}")
                                                 else:
-                                                    self.log(
+                                                    logger.info(
                                                         f"{Fore.RED + Style.BRIGHT}Недостаточно средств для получения награды для idx: {idx}{Style.RESET_ALL}")
                                         except KeyError:
                                             # Если 'cost' отсутствует, это бесплатная награда
@@ -742,18 +834,18 @@ class Boinkers:
                                                     None)
                                                 if milestone_response and 'prizes' in milestone_response:
                                                     prize_info = milestone_response['prizes'][0]
-                                                    self.log(
+                                                    logger.info(
                                                         f"{Fore.GREEN + Style.BRIGHT}Бесплатная награда получена для milestone {idx}: {prize_info['prizeName']} - {prize_info['prizeValue']}{Style.RESET_ALL}")
                                                 else:
-                                                    self.log(
+                                                    logger.info(
                                                         f"{Fore.GREEN + Style.BRIGHT}Бесплатная награда получена для milestone {idx}{Style.RESET_ALL}")
                                             else:
-                                                self.log(
+                                                logger.error(
                                                     f"{Fore.RED + Style.BRIGHT}Не удалось получить бесплатную награду для idx: {idx}{Style.RESET_ALL}")
                                     else:
                                         break  # Выходим из цикла, если пытаемся обработать индекс за пределами массива
                             else:
-                                self.log(
+                                logger.error(
                                     f"{Fore.RED + Style.BRIGHT}Не удалось определить количество доступных наград для ID: {operation_id}{Style.RESET_ALL}")
                 if USE_GAE:
                     gae = self.gae_data(token)
@@ -770,7 +862,7 @@ class Boinkers:
                         user_gae_id = gae.get('userGae', {}).get('gaeId', None)
                         user_gae_resource = gae.get('userGae', {}).get('gaeResource', 0)
 
-                        self.log(
+                        logger.info(
                             f"{Fore.CYAN + Style.BRIGHT}[ИНФО]{Style.RESET_ALL} GAE ID: {Fore.WHITE + Style.BRIGHT}{current_gae_id}{Style.RESET_ALL}, "
                             f"Имя: {Fore.WHITE + Style.BRIGHT}{name}{Style.RESET_ALL}, User GAE ID: {Fore.WHITE + Style.BRIGHT}{user_gae_id}{Style.RESET_ALL}, "
                             f"Ресурс: {Fore.WHITE + Style.BRIGHT}{user_gae_resource}{Style.RESET_ALL}, "
@@ -784,7 +876,7 @@ class Boinkers:
                         games_energy = user.get('gamesEnergy', {})
                         if user_gae_resource < gae_needed:
                             if games_energy:
-                                self.log(
+                                logger.info(
                                     f"{Fore.YELLOW + Style.BRIGHT}[ВНИМАНИЕ]{Style.RESET_ALL} Ресурс пользователя GAE "
                                     f"({Fore.WHITE + Style.BRIGHT}{user_gae_resource}{Style.RESET_ALL}) меньше необходимого "
                                     f"({Fore.WHITE + Style.BRIGHT}{gae_needed}{Style.RESET_ALL}). Проверяем наличие энергии..."
@@ -793,7 +885,7 @@ class Boinkers:
                                 for game_type, details in games_energy.items():
                                     if game_type == 'slotMachine' and game_type in game_thresholds:
                                         energy = details['energy']
-                                        self.log(
+                                        logger.info(
                                             f"{Fore.CYAN + Style.BRIGHT}[ИНФО]{Style.RESET_ALL} Энергии "
                                             f"({Fore.WHITE + Style.BRIGHT}{energy}{Style.RESET_ALL}) достаточно для игры {Fore.WHITE + Style.BRIGHT}{game_type}{Style.RESET_ALL}."
                                         )
@@ -811,7 +903,7 @@ class Boinkers:
                                             if multiplier is not None:
                                                 spin = self.spin_wheel(token, 'SlotMachine', live_op_id, multiplier)
                                                 if not spin:  # Если вращение не удалось (spin вернул None или False)
-                                                    self.log(
+                                                    logger.error(
                                                         f"{Fore.RED + Style.BRIGHT}[ОШИБКА]{Style.RESET_ALL} Вращение не удалось. Выход из цикла.")
                                                     break  # Выход из цикла while
                                                 energy = spin['userGameEnergy']['energy']
@@ -819,7 +911,7 @@ class Boinkers:
                                                 reward_type = spin.get('prize', {}).get('prizeTypeName', 'Gae')
                                                 user_gae_resource_prize = spin.get('userGae', {}).get('gaeResource', 0)
 
-                                                self.log(
+                                                logger.info(
                                                     f"{Fore.GREEN + Style.BRIGHT}[ИНФО]{Style.RESET_ALL} Вращение успешно: "
                                                     f"Тип: {Fore.WHITE + Style.BRIGHT}{game_type}{Style.RESET_ALL}, Награда: "
                                                     f"{Fore.WHITE + Style.BRIGHT}{reward}{Style.RESET_ALL} ({Fore.WHITE + Style.BRIGHT}{reward_type}{Style.RESET_ALL}), "
@@ -829,7 +921,7 @@ class Boinkers:
                                                 )
 
                                                 if user_gae_resource_prize > gae_needed:
-                                                    self.log(
+                                                    logger.info(
                                                         f"{Fore.GREEN + Style.BRIGHT}[УСПЕХ]{Style.RESET_ALL} Gae Ресурс "
                                                         f"({Fore.WHITE + Style.BRIGHT}{user_gae_resource_prize}{Style.RESET_ALL}) превысил необходимый "
                                                         f"({Fore.WHITE + Style.BRIGHT}{gae_needed}{Style.RESET_ALL}). Останавливаем вращения."
@@ -839,7 +931,7 @@ class Boinkers:
                                             time.sleep(1)  # Задержка для избежания ограничения API
 
                         else:
-                            self.log(
+                            logger.info(
                                 f"{Fore.CYAN + Style.BRIGHT}[ИНФО]{Style.RESET_ALL} Ресурс пользователя GAE "
                                 f"({Fore.WHITE + Style.BRIGHT}{user_gae_resource}{Style.RESET_ALL}) достаточен "
                                 f"({Fore.WHITE + Style.BRIGHT}{gae_needed}{Style.RESET_ALL}). Переходим к следующей задаче."
@@ -849,7 +941,7 @@ class Boinkers:
                     raffle_id = raffle.get('userRaffleData', {}).get('raffleId', None)
                     milestone = raffle.get('userRaffleData', {}).get('milestoneReached', 0)
                     ticket = raffle.get('userRaffleData', {}).get('tickets', 0)
-                    self.log(
+                    logger.info(
                         f"{Fore.MAGENTA + Style.BRIGHT}[ Raffle{Style.RESET_ALL}"
                         f"{Fore.WHITE + Style.BRIGHT} ID {raffle_id} {Style.RESET_ALL}"
                         f"{Fore.MAGENTA + Style.BRIGHT}] [ Milestone{Style.RESET_ALL}"
@@ -863,7 +955,7 @@ class Boinkers:
                     while True:
                         claim = self.claim_raffle(token)
                         if claim:
-                            self.log(
+                            logger.info(
                                 f"{Fore.MAGENTA + Style.BRIGHT}[ Raffle{Style.RESET_ALL}"
                                 f"{Fore.WHITE + Style.BRIGHT} Ticket {Style.RESET_ALL}"
                                 f"{Fore.GREEN + Style.BRIGHT}Is Claimed{Style.RESET_ALL}"
@@ -874,7 +966,7 @@ class Boinkers:
                                 f"{Fore.MAGENTA + Style.BRIGHT}]{Style.RESET_ALL}"
                             )
                         else:
-                            self.log(
+                            logger.info(
                                 f"{Fore.MAGENTA + Style.BRIGHT}[ Raffle{Style.RESET_ALL}"
                                 f"{Fore.WHITE + Style.BRIGHT} Ticket {Style.RESET_ALL}"
                                 f"{Fore.YELLOW + Style.BRIGHT}Not Available to Claim{Style.RESET_ALL}"
@@ -883,7 +975,7 @@ class Boinkers:
                             break
 
                 else:
-                    self.log(
+                    logger.info(
                         f"{Fore.MAGENTA + Style.BRIGHT}[ Account{Style.RESET_ALL}"
                         f"{Fore.RED + Style.BRIGHT} Data Is None {Style.RESET_ALL}"
                         f"{Fore.MAGENTA + Style.BRIGHT}]{Style.RESET_ALL}"
@@ -899,27 +991,31 @@ class Boinkers:
 
                 live_op_id = self.load_op_id()
                 if not live_op_id:
-                    self.log(
+                    logger.warning(
                         f"{Fore.MAGENTA + Style.BRIGHT}[ Boinkers{Style.RESET_ALL}"
-                        f"{Fore.YELLOW + Style.BRIGHT} Blocked By Cloudflare {Style.RESET_ALL}"
+                        f"{Fore.YELLOW + Style.BRIGHT} No Live Op ID Available {Style.RESET_ALL}"
                         f"{Fore.MAGENTA + Style.BRIGHT}-{Style.RESET_ALL}"
-                        f"{Fore.WHITE + Style.BRIGHT} Restart Again {Style.RESET_ALL}"
+                        f"{Fore.WHITE + Style.BRIGHT} Continuing with Empty ID {Style.RESET_ALL}"
                         f"{Fore.MAGENTA + Style.BRIGHT}]{Style.RESET_ALL}"
                     )
-                    return
+                else:
+                    logger.info(
+                        f"{Fore.MAGENTA + Style.BRIGHT}[ Boinkers{Style.RESET_ALL}"
+                        f"{Fore.WHITE + Style.BRIGHT} Live Op ID Loaded: {live_op_id} {Style.RESET_ALL}"
+                    )
 
                 self.welcome()
-                self.log(
+                logger.debug(
                     f"{Fore.GREEN + Style.BRIGHT}Account's Total: {Style.RESET_ALL}"
                     f"{Fore.WHITE + Style.BRIGHT}{len(queries)}{Style.RESET_ALL}"
                 )
-                self.log(f"{Fore.CYAN + Style.BRIGHT}-{Style.RESET_ALL}" * 75)
+                logger.info(f"{Fore.CYAN + Style.BRIGHT}-{Style.RESET_ALL}" * 75)
 
                 for query in queries:
                     query = query.strip()
                     if query:
                         self.process_query(query, live_op_id)
-                        self.log(f"{Fore.CYAN + Style.BRIGHT}-{Style.RESET_ALL}" * 75)
+                        logger.info(f"{Fore.CYAN + Style.BRIGHT}-{Style.RESET_ALL}" * 75)
                         time.sleep(3)
 
                 seconds = 600
@@ -935,9 +1031,9 @@ class Boinkers:
                     seconds -= 1
 
         except KeyboardInterrupt:
-            self.log(f"{Fore.RED + Style.BRIGHT}[ EXIT ] Boinkers - BOT{Style.RESET_ALL}")
+            logger.critical(f"{Fore.RED + Style.BRIGHT}[ EXIT ] Boinkers - BOT{Style.RESET_ALL}")
         except Exception as e:
-            self.log(f"{Fore.RED + Style.BRIGHT}An error occurred: {e}{Style.RESET_ALL}")
+            logger.error(f"{Fore.RED + Style.BRIGHT}An error occurred: {e}{Style.RESET_ALL}")
 
 if __name__ == "__main__":
     bot = Boinkers()
