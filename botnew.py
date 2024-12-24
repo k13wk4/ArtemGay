@@ -1,6 +1,7 @@
 import requests, cloudscraper, json, os, time, pytz, sys
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from colorama import Fore, Style
+from dateutil import parser
 from loguru import logger
 
 logger.remove()
@@ -48,7 +49,7 @@ class Boinkers:
             'Sec-Fetch-Dest': 'empty',
             'Sec-Fetch-Mode': 'cors',
             'Sec-Fetch-Site': 'same-origin',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36 Edg/131.0.0.0'
+            'User-Agent': 'Mozilla/5.0 (Linux; Android 13; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.6778.135 Mobile Safari/537.36 Telegram-Android/11.5.3 (Xiaomi M2012K11AG; Android 13; SDK 33; HIGH)'
 
 
         }
@@ -165,9 +166,19 @@ class Boinkers:
                 else:
                     return None
         
-    def claim_booster(self, token: str, retries=3):
+    def claim_booster(self, token: str, spin: int, multiplier: int = 0, retries=3):
         url = 'https://boink.boinkers.co/api/boinkers/addShitBooster'
         data = json.dumps({'multiplier':2, 'optionNumber':1})
+        data = json.dumps({
+            'multiplier': multiplier,
+            'optionNumber': 1
+        })
+
+        if spin > 30 and multiplier == 0:
+            data = json.dumps({
+                'multiplier': 2,
+                'optionNumber': 3
+            })
         headers = {
             **self.headers,
             'Authorization': token,
@@ -527,9 +538,33 @@ class Boinkers:
                 gold = user.get('currencySoft', 0)
                 shit = user.get('currencyCrypto', 0)
 
+                current_time = datetime.now(timezone.utc)
 
                 dynamic_currencies = user.get('dynamicCurrencies', {})
                 dc4_balance = dynamic_currencies.get('dc4', {}).get('balance', 0)
+
+                last_claimed_time_str = user.get('boinkers', {}).get('booster', {}).get('x2', {}).get(
+                    'lastTimeFreeOptionClaimed')
+                last_claimed_time = parser.isoparse(last_claimed_time_str) if last_claimed_time_str else None
+
+                last_claimed_time_str_x29 = user.get('boinkers', {}).get('booster', {}).get('x29', {}).get(
+                    'lastTimeFreeOptionClaimed')
+                last_claimed_time_x29 = parser.isoparse(
+                    last_claimed_time_str_x29) if last_claimed_time_str_x29 else None
+
+                # Check for booster x29 claim
+                if not last_claimed_time_x29 or current_time > last_claimed_time_x29 + timedelta(hours=2, minutes=5):
+                    success = self.claim_booster(token, user['gamesEnergy']['slotMachine']['energy'], multiplier=29)
+                    if success:
+                        logger.success(
+                            f"<light-green>🚀 Claimed х29 boost successfully 🚀</light-green>")
+
+                # Check for booster claim
+                if not last_claimed_time or current_time > last_claimed_time + timedelta(hours=2, minutes=5):
+                    success = self.claim_booster(token, user['gamesEnergy']['slotMachine']['energy'])
+                    if success:
+                        logger.success(
+                            f"<light-green>🚀 Claimed boost successfully 🚀</light-green>")
 
                 games_energy = user.get('gamesEnergy', {})
                 if live_op_id is None:
@@ -614,21 +649,6 @@ class Boinkers:
                     f"{Fore.WHITE + Style.BRIGHT}{shit:.4f} Shit💩 {Style.RESET_ALL}"
                     f"{Fore.MAGENTA + Style.BRIGHT}]{Style.RESET_ALL}"
                 )
-                time.sleep(1)
-
-                claim_booster = self.claim_booster(token)
-                if claim_booster:
-                    logger.info(
-                        f"{Fore.MAGENTA + Style.BRIGHT}[ Boost Mining{Style.RESET_ALL}"
-                        f"{Fore.GREEN + Style.BRIGHT} Is Claimed {Style.RESET_ALL}"
-                        f"{Fore.MAGENTA + Style.BRIGHT}]{Style.RESET_ALL}"
-                    )
-                else:
-                    logger.info(
-                        f"{Fore.MAGENTA + Style.BRIGHT}[ Boost Mining{Style.RESET_ALL}"
-                        f"{Fore.YELLOW + Style.BRIGHT} Is Already Claimed {Style.RESET_ALL}"
-                        f"{Fore.MAGENTA + Style.BRIGHT}]{Style.RESET_ALL}"
-                    )
                 time.sleep(1)
 
                 inbox = user['inboxMessages']
@@ -847,95 +867,101 @@ class Boinkers:
                             else:
                                 logger.error(
                                     f"{Fore.RED + Style.BRIGHT}Не удалось определить количество доступных наград для ID: {operation_id}{Style.RESET_ALL}")
-                if USE_GAE:
-                    gae = self.gae_data(token)
-                    if gae:
-                        milestones = gae.get('currentGae', {}).get('milestones', [])
-                        last_milestone = milestones[-1] if len(milestones) > 0 else None
-                        do_last_milestone = milestones[-2] if len(milestones) > 1 else None
 
-                        self.last_gae_resource = last_milestone.get('gaeResource', None) if last_milestone else None
-                        self.do_last_gae_resource = do_last_milestone.get('gaeResource', 0) if do_last_milestone else 0
+                multi29 = self.users_me(token)
+                if multi29 and 'booster' in multi29 and 'multiplier' in multi29['booster']:
+                    if multi29['booster']['multiplier'] == 29:
+                        if USE_GAE:
+                            gae = self.gae_data(token)
+                            if gae:
+                                milestones = gae.get('currentGae', {}).get('milestones', [])
+                                last_milestone = milestones[-1] if len(milestones) > 0 else None
+                                do_last_milestone = milestones[-2] if len(milestones) > 1 else None
 
-                        current_gae_id = gae.get('currentGae', {}).get('_id', None)
-                        name = gae.get('currentGae', {}).get('name', None)
-                        user_gae_id = gae.get('userGae', {}).get('gaeId', None)
-                        user_gae_resource = gae.get('userGae', {}).get('gaeResource', 0)
+                                self.last_gae_resource = last_milestone.get('gaeResource', None) if last_milestone else None
+                                self.do_last_gae_resource = do_last_milestone.get('gaeResource', 0) if do_last_milestone else 0
 
-                        logger.info(
-                            f"{Fore.CYAN + Style.BRIGHT}[ИНФО]{Style.RESET_ALL} GAE ID: {Fore.WHITE + Style.BRIGHT}{current_gae_id}{Style.RESET_ALL}, "
-                            f"Имя: {Fore.WHITE + Style.BRIGHT}{name}{Style.RESET_ALL}, User GAE ID: {Fore.WHITE + Style.BRIGHT}{user_gae_id}{Style.RESET_ALL}, "
-                            f"Ресурс: {Fore.WHITE + Style.BRIGHT}{user_gae_resource}{Style.RESET_ALL}, "
-                            f"Ресурс последней вехи: {Fore.WHITE + Style.BRIGHT}{self.last_gae_resource}{Style.RESET_ALL}"
-                        )
+                                current_gae_id = gae.get('currentGae', {}).get('_id', None)
+                                name = gae.get('currentGae', {}).get('name', None)
+                                user_gae_id = gae.get('userGae', {}).get('gaeId', None)
+                                user_gae_resource = gae.get('userGae', {}).get('gaeResource', 0)
 
-                        gae_needed = self.last_gae_resource + self.do_last_gae_resource
-
-                        # gae_needed = self.do_last_gae_resource
-
-                        games_energy = user.get('gamesEnergy', {})
-                        if user_gae_resource < gae_needed:
-                            if games_energy:
                                 logger.info(
-                                    f"{Fore.YELLOW + Style.BRIGHT}[ВНИМАНИЕ]{Style.RESET_ALL} Ресурс пользователя GAE "
-                                    f"({Fore.WHITE + Style.BRIGHT}{user_gae_resource}{Style.RESET_ALL}) меньше необходимого "
-                                    f"({Fore.WHITE + Style.BRIGHT}{gae_needed}{Style.RESET_ALL}). Проверяем наличие энергии..."
+                                    f"{Fore.CYAN + Style.BRIGHT}[ИНФО]{Style.RESET_ALL} GAE ID: {Fore.GREEN}{current_gae_id}{Style.RESET_ALL}, "
+                                    f"Имя: {Fore.YELLOW}{name}{Style.RESET_ALL}, User GAE ID: {Fore.MAGENTA}{user_gae_id}{Style.RESET_ALL}, "
+                                    f"Ресурс: {Fore.BLUE}{user_gae_resource}{Style.RESET_ALL}, "
+                                    f"Ресурс последней вехи: {Fore.RED}{self.last_gae_resource}{Style.RESET_ALL}"
                                 )
 
-                                for game_type, details in games_energy.items():
-                                    if game_type == 'slotMachine' and game_type in game_thresholds:
-                                        energy = details['energy']
+                                ## gae_needed = self.last_gae_resource + self.do_last_gae_resource
+
+                                gae_needed = self.last_gae_resource
+
+                                # gae_needed = self.do_last_gae_resource
+
+                                games_energy = user.get('gamesEnergy', {})
+                                if user_gae_resource < gae_needed:
+                                    if games_energy:
                                         logger.info(
-                                            f"{Fore.CYAN + Style.BRIGHT}[ИНФО]{Style.RESET_ALL} Энергии "
-                                            f"({Fore.WHITE + Style.BRIGHT}{energy}{Style.RESET_ALL}) достаточно для игры {Fore.WHITE + Style.BRIGHT}{game_type}{Style.RESET_ALL}."
+                                            f"{Fore.YELLOW + Style.BRIGHT}[ВНИМАНИЕ]{Style.RESET_ALL} Ресурс пользователя GAE "
+                                            f"({Fore.CYAN + Style.BRIGHT}{user_gae_resource}{Style.RESET_ALL}) меньше необходимого "
+                                            f"({Fore.WHITE + Style.BRIGHT}{gae_needed}{Style.RESET_ALL}). Проверяем наличие энергии..."
                                         )
 
-                                        thresholds = game_thresholds[game_type]
+                                        for game_type, details in games_energy.items():
+                                            if game_type == 'slotMachine' and game_type in game_thresholds:
+                                                energy = details['energy']
 
-                                        while energy > 500:
-                                            # Определяем подходящий множитель на основе текущей энергии
-                                            multiplier = None
-                                            for threshold, mult in thresholds:
-                                                if energy > threshold:
-                                                    multiplier = mult
-                                                    break
+                                                thresholds = game_thresholds[game_type]
 
-                                            if multiplier is not None:
-                                                spin = self.spin_wheel(token, 'SlotMachine', live_op_id, multiplier)
-                                                if not spin:  # Если вращение не удалось (spin вернул None или False)
-                                                    logger.error(
-                                                        f"{Fore.RED + Style.BRIGHT}[ОШИБКА]{Style.RESET_ALL} Вращение не удалось. Выход из цикла.")
-                                                    break  # Выход из цикла while
-                                                energy = spin['userGameEnergy']['energy']
-                                                reward = spin['prize']['prizeValue']
-                                                reward_type = spin.get('prize', {}).get('prizeTypeName', 'Gae')
-                                                user_gae_resource_prize = spin.get('userGae', {}).get('gaeResource', 0)
-
-                                                logger.info(
-                                                    f"{Fore.GREEN + Style.BRIGHT}[ИНФО]{Style.RESET_ALL} Вращение успешно: "
-                                                    f"Тип: {Fore.WHITE + Style.BRIGHT}{game_type}{Style.RESET_ALL}, Награда: "
-                                                    f"{Fore.WHITE + Style.BRIGHT}{reward}{Style.RESET_ALL} ({Fore.WHITE + Style.BRIGHT}{reward_type}{Style.RESET_ALL}), "
-                                                    f"Осталось энергии: {Fore.WHITE + Style.BRIGHT}{energy}{Style.RESET_ALL}, "
-                                                    f"Множитель: {Fore.WHITE + Style.BRIGHT}{multiplier}{Style.RESET_ALL}, "
-                                                    f"Gae ресурс: {Fore.WHITE + Style.BRIGHT}{user_gae_resource_prize}{Style.RESET_ALL}"
-                                                )
-
-                                                if user_gae_resource_prize > gae_needed:
+                                                while energy > 500:
                                                     logger.info(
-                                                        f"{Fore.GREEN + Style.BRIGHT}[УСПЕХ]{Style.RESET_ALL} Gae Ресурс "
-                                                        f"({Fore.WHITE + Style.BRIGHT}{user_gae_resource_prize}{Style.RESET_ALL}) превысил необходимый "
-                                                        f"({Fore.WHITE + Style.BRIGHT}{gae_needed}{Style.RESET_ALL}). Останавливаем вращения."
+                                                        f"{Fore.CYAN + Style.BRIGHT}[ИНФО]{Style.RESET_ALL} Энергии "
+                                                        f"({Fore.GREEN + Style.BRIGHT}{energy}{Style.RESET_ALL}) достаточно для игры {Fore.YELLOW + Style.BRIGHT}{game_type}{Style.RESET_ALL}."
                                                     )
-                                                    break
+                                                    # Определяем подходящий множитель на основе текущей энергии
+                                                    multiplier = None
+                                                    for threshold, mult in thresholds:
+                                                        if energy > threshold:
+                                                            multiplier = mult
+                                                            break
 
-                                            time.sleep(1)  # Задержка для избежания ограничения API
+                                                    if multiplier is not None:
+                                                        spin = self.spin_wheel(token, 'SlotMachine', live_op_id, multiplier)
+                                                        if not spin:  # Если вращение не удалось (spin вернул None или False)
+                                                            logger.error(
+                                                                f"{Fore.RED + Style.BRIGHT}[ОШИБКА]{Style.RESET_ALL} Вращение не удалось. Выход из цикла.")
+                                                            break  # Выход из цикла while
+                                                        energy = spin['userGameEnergy']['energy']
+                                                        reward = spin['prize']['prizeValue']
+                                                        reward_type = spin.get('prize', {}).get('prizeTypeName', 'Gae')
+                                                        user_gae_resource_prize = spin.get('userGae', {}).get('gaeResource', 0)
 
-                        else:
-                            logger.info(
-                                f"{Fore.CYAN + Style.BRIGHT}[ИНФО]{Style.RESET_ALL} Ресурс пользователя GAE "
-                                f"({Fore.WHITE + Style.BRIGHT}{user_gae_resource}{Style.RESET_ALL}) достаточен "
-                                f"({Fore.WHITE + Style.BRIGHT}{gae_needed}{Style.RESET_ALL}). Переходим к следующей задаче."
-                            )
+                                                        logger.info(
+                                                            f"{Fore.GREEN + Style.BRIGHT}[ИНФО]{Style.RESET_ALL} Вращение успешно: "
+                                                            f"Тип: {Fore.WHITE + Style.BRIGHT}{game_type}{Style.RESET_ALL}, Награда: "
+                                                            f"{Fore.WHITE + Style.BRIGHT}{reward}{Style.RESET_ALL} ({Fore.WHITE + Style.BRIGHT}{reward_type}{Style.RESET_ALL}), "
+                                                            f"Осталось энергии: {Fore.WHITE + Style.BRIGHT}{energy}{Style.RESET_ALL}, "
+                                                            f"Множитель: {Fore.WHITE + Style.BRIGHT}{multiplier}{Style.RESET_ALL}, "
+                                                            f"Gae ресурс: {Fore.WHITE + Style.BRIGHT}{user_gae_resource_prize}{Style.RESET_ALL}"
+                                                        )
+
+                                                        if user_gae_resource_prize > gae_needed:
+                                                            logger.info(
+                                                                f"{Fore.GREEN + Style.BRIGHT}[УСПЕХ]{Style.RESET_ALL} Gae Ресурс "
+                                                                f"({Fore.WHITE + Style.BRIGHT}{user_gae_resource_prize}{Style.RESET_ALL}) превысил необходимый "
+                                                                f"({Fore.WHITE + Style.BRIGHT}{gae_needed}{Style.RESET_ALL}). Останавливаем вращения."
+                                                            )
+                                                            break
+
+                                                    time.sleep(1)  # Задержка для избежания ограничения API
+
+                                else:
+                                    logger.info(
+                                        f"{Fore.CYAN + Style.BRIGHT}[ИНФО]{Style.RESET_ALL} Ресурс пользователя GAE "
+                                        f"({Fore.WHITE + Style.BRIGHT}{user_gae_resource}{Style.RESET_ALL}) достаточен "
+                                        f"({Fore.WHITE + Style.BRIGHT}{gae_needed}{Style.RESET_ALL}). Переходим к следующей задаче."
+                                    )
                 raffle = self.raffle_data(token)
                 if raffle:
                     raffle_id = raffle.get('userRaffleData', {}).get('raffleId', None)
