@@ -870,6 +870,7 @@ class Boinkers:
 
                 multi29 = self.users_me(token)
                 if multi29 and 'booster' in multi29 and 'multiplier' in multi29['booster']:
+                    logger.info(f"Multiplier: {multi29['booster']['multiplier']}")
                     if multi29['booster']['multiplier'] == 29:
                         if USE_GAE:
                             gae = self.gae_data(token)
