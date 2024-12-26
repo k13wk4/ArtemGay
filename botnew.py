@@ -165,20 +165,13 @@ class Boinkers:
                     time.sleep(2)
                 else:
                     return None
-        
-    def claim_booster(self, token: str, spin: int, multiplier: int = 0, retries=3):
+
+    def claim_booster(self, token: str, multiplier: int, option_number: int = 1, retries=3):
         url = 'https://boink.boinkers.co/api/boinkers/addShitBooster'
-        data = json.dumps({'multiplier':2, 'optionNumber':1})
         data = json.dumps({
             'multiplier': multiplier,
-            'optionNumber': 1
+            'optionNumber': option_number
         })
-
-        if spin > 30 and multiplier == 0:
-            data = json.dumps({
-                'multiplier': 2,
-                'optionNumber': 3
-            })
         headers = {
             **self.headers,
             'Authorization': token,
@@ -189,18 +182,17 @@ class Boinkers:
                 response = self.scraper.post(url, headers=headers, data=data, timeout=10)
                 if response.status_code == 403:
                     return None
-
                 response.raise_for_status()
                 return response.json()
             except (requests.RequestException, requests.Timeout, ValueError):
                 if attempt < retries - 1:
                     logger.error(
-            f"{Fore.RED + Style.BRIGHT}[ Ошибка в получении бустера]{Style.RESET_ALL}"
-            f"{Fore.YELLOW + Style.BRIGHT} Пытаемся снова... {Style.RESET_ALL}"
-            f"{Fore.WHITE + Style.BRIGHT}{attempt + 1}/{retries}{Style.RESET_ALL}",
-            end="\r",
-            flush=True
-        )
+                        f"{Fore.RED + Style.BRIGHT}[ Ошибка в получении бустера]{Style.RESET_ALL}"
+                        f"{Fore.YELLOW + Style.BRIGHT} Пытаемся снова... {Style.RESET_ALL}"
+                        f"{Fore.WHITE + Style.BRIGHT}{attempt + 1}/{retries}{Style.RESET_ALL}",
+                        end="\r",
+                        flush=True
+                    )
                     time.sleep(2)
                 else:
                     return None
@@ -543,28 +535,31 @@ class Boinkers:
                 dynamic_currencies = user.get('dynamicCurrencies', {})
                 dc4_balance = dynamic_currencies.get('dc4', {}).get('balance', 0)
 
-                last_claimed_time_str = user.get('boinkers', {}).get('booster', {}).get('x2', {}).get(
-                    'lastTimeFreeOptionClaimed')
-                last_claimed_time = parser.isoparse(last_claimed_time_str) if last_claimed_time_str else None
+                booster_info = user.get('boinkers', {}).get('booster', {})
+                current_multiplier = booster_info.get('multiplier', 0)
+                spin = user['gamesEnergy']['slotMachine']['energy']
 
-                last_claimed_time_str_x29 = user.get('boinkers', {}).get('booster', {}).get('x29', {}).get(
-                    'lastTimeFreeOptionClaimed')
-                last_claimed_time_x29 = parser.isoparse(
-                    last_claimed_time_str_x29) if last_claimed_time_str_x29 else None
+                # Общая логика для проверки временных интервалов
+                def check_time_interval(last_claimed_time_str):
+                    if last_claimed_time_str:
+                        last_claimed_time = parser.isoparse(last_claimed_time_str)
+                        return not last_claimed_time or current_time > last_claimed_time + timedelta(hours=2, minutes=5)
+                    return True
 
-                # Check for booster x29 claim
-                if not last_claimed_time_x29 or current_time > last_claimed_time_x29 + timedelta(hours=2, minutes=5):
-                    success = self.claim_booster(token, user['gamesEnergy']['slotMachine']['energy'], multiplier=29)
+                # Проверка и получение бустера x29
+                if check_time_interval(booster_info.get('x29', {}).get('lastTimeFreeOptionClaimed')):
+                    success = self.claim_booster(token, multiplier=29)
                     if success:
-                        logger.success(
-                            f"<light-green>🚀 Claimed х29 boost successfully 🚀</light-green>")
+                        logger.success(f"<light-green>🚀 Успешно получен буст x29 🚀</light-green>")
 
-                # Check for booster claim
-                if not last_claimed_time or current_time > last_claimed_time + timedelta(hours=2, minutes=5):
-                    success = self.claim_booster(token, user['gamesEnergy']['slotMachine']['energy'])
+                # Проверка и получение бустера x2
+                if check_time_interval(booster_info.get('x2', {}).get('lastTimeFreeOptionClaimed')):
+                    if current_multiplier == 0 and spin > 30:
+                        success = self.claim_booster(token, multiplier=2, option_number=3)
+                    else:
+                        success = self.claim_booster(token, multiplier=2)
                     if success:
-                        logger.success(
-                            f"<light-green>🚀 Claimed boost successfully 🚀</light-green>")
+                        logger.success(f"<light-green>🚀 Успешно получен буст x2 🚀</light-green>")
 
                 games_energy = user.get('gamesEnergy', {})
                 if live_op_id is None:
@@ -869,9 +864,13 @@ class Boinkers:
                                     f"{Fore.RED + Style.BRIGHT}Не удалось определить количество доступных наград для ID: {operation_id}{Style.RESET_ALL}")
 
                 multi29 = self.users_me(token)
-                if multi29 and 'booster' in multi29 and 'multiplier' in multi29['booster']:
-                    logger.info(f"Multiplier: {multi29['booster']['multiplier']}")
-                    if multi29['booster']['multiplier'] == 29:
+                if multi29:
+                    current_multi = multi29.get('boinkers', {}).get('booster', {}).get('multiplier')
+                    logger.info(f"<magenta>Текущий Множитель</magenta> - <green>{current_multi}</green>")
+                    if current_multi == 2:
+                        logger.info(f"<red>Множитель 2 пропускаем вращение слот машины</red>")
+                    if current_multi == 29:
+                        logger.info(f"<green>Множитель 29 уже активирован, проверяем настройку вращения</green>")
                         if USE_GAE:
                             gae = self.gae_data(token)
                             if gae:
