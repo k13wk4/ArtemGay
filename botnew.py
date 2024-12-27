@@ -556,10 +556,23 @@ class Boinkers:
                 if check_time_interval(booster_info.get('x2', {}).get('lastTimeFreeOptionClaimed')):
                     if current_multiplier == 0 and spin > 30:
                         success = self.claim_booster(token, multiplier=2, option_number=3)
+                        if success:
+                            logger.success(f"<light-green>🚀 Успешно получен буст x2 за 30 спинов 🚀</light-green>")
+                        else:
+                            logger.error(f"<light-red>Ошибка при получении буста x2 за 30 спинов</light-red>")
                     else:
-                        success = self.claim_booster(token, multiplier=2)
-                    if success:
-                        logger.success(f"<light-green>🚀 Успешно получен буст x2 🚀</light-green>")
+                        if current_multiplier != 29:
+                            success = self.claim_booster(token, multiplier=2)
+                            if success:
+                                logger.success(f"<light-green>🚀 Успешно получен бесплатный буст x2 🚀</light-green>")
+                            else:
+                                logger.error(f"<light-red>Ошибка при получении бесплатного буста x2</light-red>")
+                        else:
+                            logger.info(
+                                f"<light-yellow>Бесплатный буст x2 не применен, так как текущий множитель равен 29</light-yellow>")
+                else:
+                    logger.info(
+                        f"<light-yellow>Бесплатный буст x2 не доступен, так как не прошло достаточно времени с последнего получения</light-yellow>")
 
                 games_energy = user.get('gamesEnergy', {})
                 if live_op_id is None:
