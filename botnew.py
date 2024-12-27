@@ -578,9 +578,9 @@ class Boinkers:
                 if live_op_id is None:
                     logger.warning(
                         f"{Fore.MAGENTA + Style.BRIGHT}[ Boinkers{Style.RESET_ALL}"
-                        f"{Fore.YELLOW + Style.BRIGHT} No Live Op ID Available {Style.RESET_ALL}"
+                        f"{Fore.YELLOW + Style.BRIGHT} Идентификатор оперативного доступа отсутствует {Style.RESET_ALL}"
                         f"{Fore.MAGENTA + Style.BRIGHT}-{Style.RESET_ALL}"
-                        f"{Fore.WHITE + Style.BRIGHT} Skipping energy check and game processing{Style.RESET_ALL}"
+                        f"{Fore.WHITE + Style.BRIGHT} Пропуск проверки энергии и обработки игры{Style.RESET_ALL}"
                         f"{Fore.MAGENTA + Style.BRIGHT}]{Style.RESET_ALL}"
                     )
                 else:
@@ -738,14 +738,17 @@ class Boinkers:
                         f"{Fore.MAGENTA + Style.BRIGHT}[ Boinker{Style.RESET_ALL}"
                         f"{Fore.WHITE + Style.BRIGHT} {boinkers['currentBoinkerProgression']['id']} {Style.RESET_ALL}"
                         f"{Fore.MAGENTA + Style.BRIGHT}-{Style.RESET_ALL}"
-                        f"{Fore.WHITE + Style.BRIGHT} Level {boinkers['currentBoinkerProgression']['level']} {Style.RESET_ALL}"
+                        f"{Fore.WHITE + Style.BRIGHT} Уровень {boinkers['currentBoinkerProgression']['level']} {Style.RESET_ALL}"
                         f"{Fore.MAGENTA + Style.BRIGHT} ]{Style.RESET_ALL}"
                     )
                     time.sleep(1)
 
                     upgrade_type = ['megaUpgradeBoinkers', 'upgradeBoinker']
-                    while True:
-                        for upgrade in upgrade_type:
+                    gold = user.get('currencySoft', 0)
+
+                    for upgrade in upgrade_type:
+                        if (upgrade == 'megaUpgradeBoinkers' and gold >= 200000000) or (
+                                upgrade == 'upgradeBoinker' and gold >= 15000000):
                             upgrade_boinker = self.upgrade_boinker(token, upgrade_type=upgrade)
                             time.sleep(7)
 
@@ -755,44 +758,37 @@ class Boinkers:
 
                                 logger.info(
                                     f"{Fore.MAGENTA + Style.BRIGHT}[ Boinker{Style.RESET_ALL}"
-                                     f"{Fore.GREEN + Style.BRIGHT} {'Mega ' if upgrade == 'megaUpgradeBoinkers' else ''}Upgrade Successful {Style.RESET_ALL}"
+                                    f"{Fore.GREEN + Style.BRIGHT} {'Мега ' if upgrade == 'megaUpgradeBoinkers' else ''}Апгрейд успешен {Style.RESET_ALL}"
                                     f"{Fore.MAGENTA + Style.BRIGHT}] [{Style.RESET_ALL}"
                                     f"{Fore.WHITE + Style.BRIGHT} {boink_id} {Style.RESET_ALL}"
-                                    f"{Fore.WHITE + Style.BRIGHT} - Level {level} {Style.RESET_ALL}"
+                                    f"{Fore.WHITE + Style.BRIGHT} - Уровень {level} {Style.RESET_ALL}"
+                                    f"{Fore.MAGENTA + Style.BRIGHT}]{Style.RESET_ALL}"
+                                )
+                                # Обновляем количество золота после успешного апгрейда
+                                gold -= 200000000 if upgrade == 'megaUpgradeBoinkers' else 15000000
+                            else:
+                                logger.info(
+                                    f"{Fore.MAGENTA + Style.BRIGHT}[ Boinker{Style.RESET_ALL}"
+                                    f"{Fore.RED + Style.BRIGHT} {'Мега-апгрейд' if upgrade == 'megaUpgradeBoinkers' else 'Апгрейд'} не удался {Style.RESET_ALL}"
+                                    f"{Fore.MAGENTA + Style.BRIGHT}] [ Причина{Style.RESET_ALL}"
+                                    f"{Fore.WHITE + Style.BRIGHT} Неизвестно {Style.RESET_ALL}"
                                     f"{Fore.MAGENTA + Style.BRIGHT}]{Style.RESET_ALL}"
                                 )
 
-                            else:
-                                if upgrade == 'megaUpgradeBoinkers':
-                                    logger.info(
-                                        f"{Fore.MAGENTA + Style.BRIGHT}[ Boinker{Style.RESET_ALL}"
-                                        f"{Fore.RED + Style.BRIGHT} Mega Upgrade Failed {Style.RESET_ALL}"
-                                        f"{Fore.MAGENTA + Style.BRIGHT}] [ Reason{Style.RESET_ALL}"
-                                        f"{Fore.WHITE + Style.BRIGHT} Balance Not Enough {Style.RESET_ALL}"
-                                        f"{Fore.MAGENTA + Style.BRIGHT}]{Style.RESET_ALL}"
-                                    )
-                                else:
-                                    logger.info(
-                                        f"{Fore.MAGENTA + Style.BRIGHT}[ Boinker{Style.RESET_ALL}"
-                                        f"{Fore.RED + Style.BRIGHT} Isn't Upgraded {Style.RESET_ALL}"
-                                        f"{Fore.MAGENTA + Style.BRIGHT}] [ Reason{Style.RESET_ALL}"
-                                        f"{Fore.WHITE + Style.BRIGHT} Balance Not Enough {Style.RESET_ALL}"
-                                        f"{Fore.MAGENTA + Style.BRIGHT}]{Style.RESET_ALL}"
-                                    )
-
-                                break
-
                             time.sleep(1)
-
                         else:
-                            continue
-
-                        break
+                            logger.info(
+                                f"{Fore.MAGENTA + Style.BRIGHT}[ Boinker{Style.RESET_ALL}"
+                                f"{Fore.RED + Style.BRIGHT} {'Мега-апгрейд' if upgrade == 'megaUpgradeBoinkers' else 'Апгрейд'} не удался {Style.RESET_ALL}"
+                                f"{Fore.MAGENTA + Style.BRIGHT}] [ Причина{Style.RESET_ALL}"
+                                f"{Fore.WHITE + Style.BRIGHT} Недостаточно средств {Style.RESET_ALL}"
+                                f"{Fore.MAGENTA + Style.BRIGHT}]{Style.RESET_ALL}"
+                            )
 
                 else:
                     logger.info(
                         f"{Fore.MAGENTA + Style.BRIGHT}[ Boinker{Style.RESET_ALL}"
-                        f"{Fore.RED + Style.BRIGHT} Data Is None {Style.RESET_ALL}"
+                        f"{Fore.RED + Style.BRIGHT} Данные отсутствуют {Style.RESET_ALL}"
                         f"{Fore.MAGENTA + Style.BRIGHT} ]{Style.RESET_ALL}"
                     )
                 time.sleep(1)
