@@ -183,6 +183,18 @@ class Boinkers:
                 if response.status_code == 403:
                     return None
                 response.raise_for_status()
+                booster = response.json()['userPostBooster']['userBoinkers']['booster']
+                multi = booster['multiplier']
+                ends_at = booster['endsAt']
+                ends_time = parser.isoparse(ends_at)
+                current_time = datetime.now(pytz.utc)
+                time_difference = (ends_time - current_time).total_seconds() / 60  # разница в минутах
+                logger.success(
+                    f"{Fore.GREEN + Style.BRIGHT}[ Успешно получен бустер]{Style.RESET_ALL}"
+                    f"{Fore.WHITE + Style.BRIGHT} Множитель: {multi}{Style.RESET_ALL}"
+                    f"{Fore.WHITE + Style.BRIGHT} Закончится через: {time_difference}{Style.RESET_ALL}"
+                )
+
                 return response.json()
             except (requests.RequestException, requests.Timeout, ValueError):
                 if attempt < retries - 1:
@@ -537,9 +549,7 @@ class Boinkers:
 
                 booster_info = user.get('boinkers', {}).get('booster', {})
                 current_multiplier = booster_info.get('multiplier', 0)
-                print(f"Текущий множитель: {current_multiplier}")
                 ends_multiplier = booster_info.get('endsAt')
-                print(f"Время окончания текущего множителя: {ends_multiplier}")
                 spin = user['gamesEnergy']['slotMachine']['energy']
                 current_time = datetime.now(pytz.utc)
 
@@ -564,7 +574,7 @@ class Boinkers:
                 if current_multiplier != 29 and ends_multiplier and spin > 30:
                     ends_time = parser.isoparse(ends_multiplier)
                     time_difference = (ends_time - current_time).total_seconds() / 60  # разница в минутах
-                    if 14 * 60 - 250 < time_difference < 14 * 60:  # 14 часов минус 250 минут
+                    if time_difference < 590:
                         success = self.claim_booster(token, multiplier=2, option_number=3)
                         if success:
                             logger.success(f"<light-green>🚀 Успешно применен буст x2 (оплаченный) 🚀</light-green>")
