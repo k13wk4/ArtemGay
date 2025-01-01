@@ -188,7 +188,7 @@ class Boinkers:
                 ends_at = booster['endsAt']
                 ends_time = parser.isoparse(ends_at)
                 current_time = datetime.now(pytz.utc)
-                time_difference = (ends_time - current_time).total_seconds() / 60  # разница в минутах
+                time_difference = round((ends_time - current_time).total_seconds() / 60) # разница в минутах
                 logger.success(
                     f"{Fore.GREEN + Style.BRIGHT}[ Успешно получен бустер]{Style.RESET_ALL}"
                     f"{Fore.WHITE + Style.BRIGHT} Множитель: {multi}{Style.RESET_ALL}"
