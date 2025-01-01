@@ -34,6 +34,7 @@ dc4_balance_min = 1500
 
 # Крутить слот машину или нет
 USE_GAE = True
+USE_WHEEL = False
 
 class Boinkers:
     def __init__(self) -> None:
@@ -618,91 +619,91 @@ class Boinkers:
                         logger.success(f"<light-green>🚀 Успешно получен или применен буст x29 🚀</light-green>")
                     else:
                         logger.error(f"<light-red>Ошибка при получении или применении буста x29</light-red>")
+                if USE_WHEEL:
+                    games_energy = user.get('gamesEnergy', {})
+                    if live_op_id is None:
+                        logger.warning(
+                            f"{Fore.MAGENTA + Style.BRIGHT}[ Boinkers{Style.RESET_ALL}"
+                            f"{Fore.YELLOW + Style.BRIGHT} Идентификатор оперативного доступа отсутствует {Style.RESET_ALL}"
+                            f"{Fore.MAGENTA + Style.BRIGHT}-{Style.RESET_ALL}"
+                            f"{Fore.WHITE + Style.BRIGHT} Пропуск проверки энергии и обработки игры{Style.RESET_ALL}"
+                            f"{Fore.MAGENTA + Style.BRIGHT}]{Style.RESET_ALL}"
+                        )
+                    else:
+                        if dc4_balance < dc4_balance_min:
+                            if games_energy:
+                                logger.info(
+                                    f"{Fore.YELLOW + Style.BRIGHT}[ВНИМАНИЕ]{Style.RESET_ALL} Ресурс пользователя GAE "
+                                    f"({Fore.WHITE + Style.BRIGHT}{dc4_balance}{Style.RESET_ALL}) меньше необходимого "
+                                    f"({Fore.WHITE + Style.BRIGHT}{dc4_balance_max}{Style.RESET_ALL}). Проверяем наличие энергии..."
+                                )
 
-                games_energy = user.get('gamesEnergy', {})
-                if live_op_id is None:
-                    logger.warning(
-                        f"{Fore.MAGENTA + Style.BRIGHT}[ Boinkers{Style.RESET_ALL}"
-                        f"{Fore.YELLOW + Style.BRIGHT} Идентификатор оперативного доступа отсутствует {Style.RESET_ALL}"
-                        f"{Fore.MAGENTA + Style.BRIGHT}-{Style.RESET_ALL}"
-                        f"{Fore.WHITE + Style.BRIGHT} Пропуск проверки энергии и обработки игры{Style.RESET_ALL}"
-                        f"{Fore.MAGENTA + Style.BRIGHT}]{Style.RESET_ALL}"
-                    )
-                else:
-                    if dc4_balance < dc4_balance_min:
-                        if games_energy:
-                            logger.info(
-                                f"{Fore.YELLOW + Style.BRIGHT}[ВНИМАНИЕ]{Style.RESET_ALL} Ресурс пользователя GAE "
-                                f"({Fore.WHITE + Style.BRIGHT}{dc4_balance}{Style.RESET_ALL}) меньше необходимого "
-                                f"({Fore.WHITE + Style.BRIGHT}{dc4_balance_max}{Style.RESET_ALL}). Проверяем наличие энергии..."
-                            )
+                                for game_type, details in games_energy.items():
+                                    if game_type == 'wheelOfFortune' and game_type in game_thresholds:
+                                        energy = details['energy']
+                                        logger.info(
+                                            f"{Fore.CYAN + Style.BRIGHT}[ИНФО]{Style.RESET_ALL} Энергии "
+                                            f"({Fore.WHITE + Style.BRIGHT}{energy}{Style.RESET_ALL}) достаточно для игры {Fore.WHITE + Style.BRIGHT}{game_type}{Style.RESET_ALL}."
+                                        )
+                                        thresholds = game_thresholds[game_type]
+                                        while energy > 0:
+                                            multiplier = next(
+                                                (mult for threshold, mult in thresholds if energy > threshold),
+                                                thresholds[-1][1])
+                                            spin_result = self.spin_wheel(token, 'WheelOfFortune', live_op_id, multiplier)
+                                            if spin_result is None:
+                                                logger.error(
+                                                    f"Получен None при попытке вызова spin_wheel с параметрами: live_op_id={live_op_id}, multiplier={multiplier}")
+                                            if spin_result:
+                                                energy = spin_result['userGameEnergy']['energy']
+                                                reward = spin_result['prize']['prizeValue']
+                                                reward_type = spin_result.get('prize', {}).get('prizeTypeName', 'Gae')
+                                                new_dynamic_currencies = spin_result.get('newDynamicCurrencies', {})
+                                                user_dc4_balance = new_dynamic_currencies.get('dc4', {}).get('balance', 0)
 
-                            for game_type, details in games_energy.items():
-                                if game_type == 'wheelOfFortune' and game_type in game_thresholds:
-                                    energy = details['energy']
-                                    logger.info(
-                                        f"{Fore.CYAN + Style.BRIGHT}[ИНФО]{Style.RESET_ALL} Энергии "
-                                        f"({Fore.WHITE + Style.BRIGHT}{energy}{Style.RESET_ALL}) достаточно для игры {Fore.WHITE + Style.BRIGHT}{game_type}{Style.RESET_ALL}."
-                                    )
-                                    thresholds = game_thresholds[game_type]
-                                    while energy > 0:
-                                        multiplier = next(
-                                            (mult for threshold, mult in thresholds if energy > threshold),
-                                            thresholds[-1][1])
-                                        spin_result = self.spin_wheel(token, 'WheelOfFortune', live_op_id, multiplier)
-                                        if spin_result is None:
-                                            logger.error(
-                                                f"Получен None при попытке вызова spin_wheel с параметрами: live_op_id={live_op_id}, multiplier={multiplier}")
-                                        if spin_result:
-                                            energy = spin_result['userGameEnergy']['energy']
-                                            reward = spin_result['prize']['prizeValue']
-                                            reward_type = spin_result.get('prize', {}).get('prizeTypeName', 'Gae')
-                                            new_dynamic_currencies = spin_result.get('newDynamicCurrencies', {})
-                                            user_dc4_balance = new_dynamic_currencies.get('dc4', {}).get('balance', 0)
-
-                                            logger.info(
-                                                f"{Fore.GREEN + Style.BRIGHT}[ИНФО]{Style.RESET_ALL} Вращение успешно: "
-                                                f"Тип: {Fore.WHITE + Style.BRIGHT}{game_type}{Style.RESET_ALL}, Награда: "
-                                                f"{Fore.WHITE + Style.BRIGHT}{reward}{Style.RESET_ALL} ({Fore.WHITE + Style.BRIGHT}{reward_type}{Style.RESET_ALL}), "
-                                                f"Осталось энергии: {Fore.WHITE + Style.BRIGHT}{energy}{Style.RESET_ALL}, "
-                                                f"Множитель: {Fore.WHITE + Style.BRIGHT}{multiplier}{Style.RESET_ALL}, "
-                                                f"DC4 баланс: {Fore.WHITE + Style.BRIGHT}{user_dc4_balance}{Style.RESET_ALL}"
-                                            )
-
-                                            if user_dc4_balance >= dc4_balance_max:
                                                 logger.info(
-                                                    f"{Fore.GREEN + Style.BRIGHT}[УСПЕХ]{Style.RESET_ALL} DC4 Ресурс "
-                                                    f"({Fore.WHITE + Style.BRIGHT}{user_dc4_balance}{Style.RESET_ALL}) превысил необходимый "
-                                                    f"({Fore.WHITE + Style.BRIGHT}{dc4_balance_max}{Style.RESET_ALL}). Останавливаем вращения."
+                                                    f"{Fore.GREEN + Style.BRIGHT}[ИНФО]{Style.RESET_ALL} Вращение успешно: "
+                                                    f"Тип: {Fore.WHITE + Style.BRIGHT}{game_type}{Style.RESET_ALL}, Награда: "
+                                                    f"{Fore.WHITE + Style.BRIGHT}{reward}{Style.RESET_ALL} ({Fore.WHITE + Style.BRIGHT}{reward_type}{Style.RESET_ALL}), "
+                                                    f"Осталось энергии: {Fore.WHITE + Style.BRIGHT}{energy}{Style.RESET_ALL}, "
+                                                    f"Множитель: {Fore.WHITE + Style.BRIGHT}{multiplier}{Style.RESET_ALL}, "
+                                                    f"DC4 баланс: {Fore.WHITE + Style.BRIGHT}{user_dc4_balance}{Style.RESET_ALL}"
+                                                )
+
+                                                if user_dc4_balance >= dc4_balance_max:
+                                                    logger.info(
+                                                        f"{Fore.GREEN + Style.BRIGHT}[УСПЕХ]{Style.RESET_ALL} DC4 Ресурс "
+                                                        f"({Fore.WHITE + Style.BRIGHT}{user_dc4_balance}{Style.RESET_ALL}) превысил необходимый "
+                                                        f"({Fore.WHITE + Style.BRIGHT}{dc4_balance_max}{Style.RESET_ALL}). Останавливаем вращения."
+                                                    )
+                                                    break
+                                            else:
+                                                logger.info(
+                                                    f"{Fore.RED + Style.BRIGHT}[ОШИБКА]{Style.RESET_ALL} . Переходим к следующему этапу."
                                                 )
                                                 break
-                                        else:
-                                            logger.info(
-                                                f"{Fore.RED + Style.BRIGHT}[ОШИБКА]{Style.RESET_ALL} . Переходим к следующему этапу."
-                                            )
-                                            break
 
-                                        time.sleep(1)
+                                            time.sleep(1)
 
-                    else:
-                        logger.info(
-                            f"{Fore.CYAN + Style.BRIGHT}[ИНФО]{Style.RESET_ALL} Ресурс DC4 "
-                            f"({Fore.WHITE + Style.BRIGHT}{dc4_balance}{Style.RESET_ALL}) достаточен "
-                            f"({Fore.WHITE + Style.BRIGHT}{dc4_balance_min}{Style.RESET_ALL}). Переходим к следующей задаче."
-                        )
+                        else:
+                            logger.info(
+                                f"{Fore.CYAN + Style.BRIGHT}[ИНФО]{Style.RESET_ALL} Ресурс DC4 "
+                                f"({Fore.WHITE + Style.BRIGHT}{dc4_balance}{Style.RESET_ALL}) достаточен "
+                                f"({Fore.WHITE + Style.BRIGHT}{dc4_balance_min}{Style.RESET_ALL}). Переходим к следующей задаче."
+                            )
 
-                logger.info(
-                    f"{Fore.MAGENTA + Style.BRIGHT}[ Аккаунт{Style.RESET_ALL}"
-                    f"{Fore.WHITE + Style.BRIGHT} {user['userName']} {Style.RESET_ALL}"
-                    f"{Fore.MAGENTA + Style.BRIGHT}]{Style.RESET_ALL} [ Баланс{Style.RESET_ALL} "
-                    f"{Fore.WHITE + Style.BRIGHT}{gold} Gold🪙 {Style.RESET_ALL}"
-                    f"{Fore.MAGENTA + Style.BRIGHT} -{Style.RESET_ALL}"
-                    f"{Fore.WHITE + Style.BRIGHT}{dc4_balance} DC4 {Style.RESET_ALL}"
-                    f"{Fore.MAGENTA + Style.BRIGHT} -{Style.RESET_ALL}"
-                    f"{Fore.WHITE + Style.BRIGHT}{shit:.4f} Shit💩 {Style.RESET_ALL}"
-                    f"{Fore.MAGENTA + Style.BRIGHT}]{Style.RESET_ALL}"
-                )
-                time.sleep(1)
+                    logger.info(
+                        f"{Fore.MAGENTA + Style.BRIGHT}[ Аккаунт{Style.RESET_ALL}"
+                        f"{Fore.WHITE + Style.BRIGHT} {user['userName']} {Style.RESET_ALL}"
+                        f"{Fore.MAGENTA + Style.BRIGHT}]{Style.RESET_ALL} [ Баланс{Style.RESET_ALL} "
+                        f"{Fore.WHITE + Style.BRIGHT}{gold} Gold🪙 {Style.RESET_ALL}"
+                        f"{Fore.MAGENTA + Style.BRIGHT} -{Style.RESET_ALL}"
+                        f"{Fore.WHITE + Style.BRIGHT}{dc4_balance} DC4 {Style.RESET_ALL}"
+                        f"{Fore.MAGENTA + Style.BRIGHT} -{Style.RESET_ALL}"
+                        f"{Fore.WHITE + Style.BRIGHT}{shit:.4f} Shit💩 {Style.RESET_ALL}"
+                        f"{Fore.MAGENTA + Style.BRIGHT}]{Style.RESET_ALL}"
+                    )
+                    time.sleep(1)
 
                 inbox = user['inboxMessages']
                 if inbox:
