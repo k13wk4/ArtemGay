@@ -1,5 +1,6 @@
 import requests, cloudscraper, json, os, time, pytz, sys
 from datetime import datetime, timedelta, timezone
+
 from colorama import Fore, Style
 from dateutil import parser
 from loguru import logger
@@ -550,10 +551,11 @@ class Boinkers:
                 booster_info = user.get('boinkers', {}).get('booster', {})
                 current_multiplier = booster_info.get('multiplier', 0)
                 ends_multiplier = booster_info.get('endsAt')
+                ends_time = parser.isoparse(ends_multiplier)
+                time_difference = (ends_time - current_time).total_seconds() / 60
                 spin = user['gamesEnergy']['slotMachine']['energy']
                 current_time = datetime.now(pytz.utc)
 
-                # Функция для проверки временного интервала
                 def check_time_interval(last_claimed_time_str, interval_hours=2, interval_minutes=5):
                     if last_claimed_time_str:
                         last_claimed_time = parser.isoparse(last_claimed_time_str)
@@ -561,10 +563,18 @@ class Boinkers:
                                                                             minutes=interval_minutes)
                     return True
 
+                if current_multiplier == 29 and check_time_interval(
+                        booster_info.get('x29', {}).get('lastTimeFreeOptionClaimed')) and time_difference < 590:
+                    success = self.claim_booster(token, 2, 3)
+                    if success:
+                        logger.success(f"<light-green>🚀 Успешно применен буст x2 перед х29 🚀</light-green>")
+                    else:
+                        logger.error(f"<light-red>Ошибка при применении буста x2 перед х29</light-red>")
+
                 # Проверка и применение бустера x2 (бесплатный)
                 if current_multiplier != 29 and check_time_interval(
                         booster_info.get('x2', {}).get('lastTimeFreeOptionClaimed')):
-                    success = self.claim_booster(token, multiplier=2, option_number=1)
+                    success = self.claim_booster(token, 2, 1)
                     if success:
                         logger.success(f"<light-green>🚀 Успешно применен бесплатный буст x2 🚀</light-green>")
                     else:
@@ -572,20 +582,38 @@ class Boinkers:
 
                 # Проверка на применение бустера x2 (оплаченный), если текущий бустер не x29
                 if current_multiplier != 29 and ends_multiplier and spin > 30:
-                    ends_time = parser.isoparse(ends_multiplier)
-                    time_difference = (ends_time - current_time).total_seconds() / 60  # разница в минутах
                     if time_difference < 590:
-                        success = self.claim_booster(token, multiplier=2, option_number=3)
+                        success = self.claim_booster(token, 2, 3)
                         if success:
                             logger.success(f"<light-green>🚀 Успешно применен буст x2 (оплаченный) 🚀</light-green>")
                         else:
                             logger.error(f"<light-red>Ошибка при применении буста x2 (оплаченный)</light-red>")
 
+                if time_difference <= 0:
+                    multiplier = 2
+                    option_number = 3
+
+                    if spin > 120:
+                        repeats = 4
+                    elif spin > 90:
+                        repeats = 3
+                    elif spin > 60:
+                        repeats = 2
+                    elif spin > 30:
+                        repeats = 1
+                    else:
+                        logger.warning(
+                            f"{Fore.MAGENTA + Style.BRIGHT}Недостаточно энергии{spin} для применения бустера{Style.RESET_ALL}")
+                        repeats = 0
+
+                    for _ in range(repeats):
+                        self.claim_booster(token, multiplier, option_number)
+                        time.sleep(1)
+
                 # Проверка и применение бустера x29
                 if current_multiplier != 29 or (current_multiplier == 29 and check_time_interval(
-                        booster_info.get('x29', {}).get('lastTimeFreeOptionClaimed'), interval_hours=0,
-                        interval_minutes=0)):  # Условие для проверки, что уже применен x29 или если его нет, применяем
-                    success = self.claim_booster(token, multiplier=29, option_number=1)
+                        booster_info.get('x29', {}).get('lastTimeFreeOptionClaimed'))):  # Условие для проверки, что уже применен x29 или если его нет, применяем
+                    success = self.claim_booster(token, 29, 1)
                     if success:
                         logger.success(f"<light-green>🚀 Успешно получен или применен буст x29 🚀</light-green>")
                     else:
